@@ -3,7 +3,7 @@ name: Run main.py Every Minute
 on:
   schedule:
     - cron: "* * * * *"   # Every minute (UTC)
-
+  workflow_dispatch:       # allow manual run
 jobs:
   run-script:
     runs-on: ubuntu-latest
