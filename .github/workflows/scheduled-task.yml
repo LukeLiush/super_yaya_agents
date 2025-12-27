@@ -8,6 +8,7 @@ on:
 jobs:
   run-script:
     runs-on: ubuntu-latest
+    environment: MY_FIRST_SECRET  # Reference the environment name
     steps:
       - name: Show system info
         run: |
@@ -34,3 +35,5 @@ jobs:
 
       - name: Run main.py
         run: uv run python main.py
+        env:
+          API_TOKEN: ${{ secrets.MY_SECRET_TOKEN }}
