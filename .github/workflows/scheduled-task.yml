@@ -4,14 +4,24 @@ on:
   schedule:
     - cron: "* * * * *"   # Every minute (UTC)
   workflow_dispatch:       # allow manual run
+
 jobs:
   run-script:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Use existing virtual environment
-        run: |
-          source .venv/bin/activate
-          python main.py
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dependencies with uv
+        run: uv sync
+
+      - name: Run main.py
+        run: uv run python main.py
