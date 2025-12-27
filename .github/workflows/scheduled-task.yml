@@ -36,4 +36,4 @@ jobs:
       - name: Run main.py
         run: uv run python main.py
         env:
-          API_TOKEN: ${{ secrets.MY_SECRET_TOKEN }}
+          MY_SECRET_TOKEN: ${{ secrets.MY_SECRET_TOKEN }}
