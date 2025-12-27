@@ -1,8 +1,8 @@
-name: Run main.py Every Minute
+name: Run main.py regularlyÒ
 
 on:
-  schedule:
-    - cron: "*/30 * * * *"   # Every 30 minutes (UTC)
+#  schedule:
+#    - cron: "*/30 * * * *"   # Every 30 minutes (UTC)
   workflow_dispatch:       # allow manual run
 
 jobs:
@@ -12,12 +12,12 @@ jobs:
     steps:
       - name: Show system info
         run: |
-            echo "OS: $(uname -a)"
-            echo "CPU: $(nproc) cores"
-            echo "Memory: $(free -h | grep Mem)"
-            echo "Disk: $(df -h / | tail -1)"
-            echo "Runner: $RUNNER_OS"
-            echo "Architecture: $RUNNER_ARCH"
+          echo "OS: $(uname -a)"
+          echo "CPU: $(nproc) cores"
+          echo "Memory: $(free -h | grep Mem)"
+          echo "Disk: $(df -h / | tail -1)"
+          echo "Runner: $RUNNER_OS"
+          echo "Architecture: $RUNNER_ARCH"
 
       - name: Checkout repository
         uses: actions/checkout@v4
