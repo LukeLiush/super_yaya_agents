@@ -1,0 +1,39 @@
+name: Run main.py regularlyÒ
+
+on:
+#  schedule:
+#    - cron: "*/30 * * * *"   # Every 30 minutes (UTC)
+  workflow_dispatch:       # allow manual run
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+    environment: MY_FIRST_SECRET  # Reference the environment name
+    steps:
+      - name: Show system info
+        run: |
+          echo "OS: $(uname -a)"
+          echo "CPU: $(nproc) cores"
+          echo "Memory: $(free -h | grep Mem)"
+          echo "Disk: $(df -h / | tail -1)"
+          echo "Runner: $RUNNER_OS"
+          echo "Architecture: $RUNNER_ARCH"
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dependencies with uv
+        run: uv sync
+
+      - name: Run main.py
+        run: uv run python main.py
+        env:
+          MY_SECRET_TOKEN: ${{ secrets.MY_SECRET_TOKEN }}
