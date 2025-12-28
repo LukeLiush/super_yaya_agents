@@ -42,3 +42,5 @@ jobs:
         run:  uv run python -m invesetment_agent.infrastructure.cli.app
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
