@@ -3,46 +3,127 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
-import boto3
-from agno.models.aws import AwsBedrock
+from agno.models.google import Gemini
+from agno.models.huggingface import HuggingFace
+from agno.models.groq import Groq
+from agno.models.deepseek import DeepSeek
+from agno.models.openrouter import OpenRouter
+from dotenv import load_dotenv
 
 from invesetment_agent.application.port.ai_agent_service import SingleAgentService
 from invesetment_agent.application.usecases.single_stock_summarization_usecase import StockSummarizationUseCase
-from invesetment_agent.infrastructure.adapter.agno_agent import AgnoAgentService
-from invesetment_agent.infrastructure.utils import set_kb_bedrock_aws_credentials_env_variables
+from invesetment_agent.infrastructure.adapter.agno_agent import AgnoAgentService, FallbackAgnoAgentService
+
+load_dotenv(verbose=True)
 
 
 def create_application() -> Application:
     return Application()
 
 
-
-
 @dataclass
 class Application:
-    def __post_init__(self):
-        set_kb_bedrock_aws_credentials_env_variables()
-        aws_access_key = os.getenv("AWS_ACCESS_KEY_ID")
-        aws_secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-        aws_session_token = os.getenv("AWS_SESSION_TOKEN")
-        aws_region = os.getenv("AWS_REGION", "us-east-1")
-        session_kwargs = {
-            "aws_access_key_id": aws_access_key,
-            "aws_secret_access_key": aws_secret_key,
-            "aws_session_token": aws_session_token,
-            "region_name": aws_region,
-        }
-        boto_session = boto3.Session(**session_kwargs)
-        model = AwsBedrock(
-            id="us.anthropic.claude-3-7-sonnet-20250219-v1:0",
-            # id="us.anthropic.claude-sonnet-4-20250514-v1:0",
-            aws_region=aws_region,
-            session=boto_session,
-            temperature=0.7,
+    def create_fallback_agent_service(self, role: str, description: str) -> SingleAgentService:
+        #hf_service = self.create_hf_agent_service(role=role, description=description)
+        google_service = self.create_google_agent_service(role=role, description=description)
+        # groq = self.create_grok_agent_service(role=role, description=description)
+        #deepseek = self.create_deepseek_agent_service(role=role, description=description)
+        #openrouter = self.create_openrouter_agent_service(role=role, description=description)
+        return FallbackAgnoAgentService(agent_services=[
+            #hf_service,
+            google_service,
+            #groq,
+            #deepseek,
+            #openrouter,
+        ])
+
+    @staticmethod
+    def create_openrouter_agent_service(role: str, description: str) -> SingleAgentService:
+        # https://openrouter.ai/settings/keys
+        openrouter_api_key = os.environ.get("OPENROUTER_API_KEY")
+        if not openrouter_api_key:
+            raise RuntimeError("OPENROUTER_API_KEY not set in environment. Please set it (e.g., in .env).")
+
+        model = OpenRouter(
+            #id="google/gemini-2.0-flash-exp:free",
+            #id="nex-agi/deepseek-v3.1-nex-n1:free",
+            id="google/gemini-2.0-flash-exp:free",
+            api_key=openrouter_api_key,
+
         )
 
-        financial_agent_service: SingleAgentService = AgnoAgentService(model=model,
-                                                                       role="Investment Analyst",
-                                                                       description="Researches stock prices, analyst recommendations, and  stock fundamentals.")
-        self.stock_summarization_use_case: StockSummarizationUseCase = StockSummarizationUseCase(
-            financial_agent_service)
+        return AgnoAgentService(model=model,
+                                role=role,
+                                description=description)
+    @staticmethod
+    def create_deepseek_agent_service(role: str, description: str) -> SingleAgentService:
+        # https://deepseek.com/account/api-keys
+        deepseek_api_key = os.environ.get("DEEPSEEK_API_KEY")
+        if not deepseek_api_key:
+            raise RuntimeError("DEEPSEEK_API_KEY not set in environment. Please set it (e.g., in .env).")
+
+        model = DeepSeek(
+            id="deepseek-chat",
+            api_key=deepseek_api_key,
+        )
+
+        return AgnoAgentService(model=model,
+                                role=role,
+                                description=description)
+
+    @staticmethod
+    def create_grok_agent_service(role: str, description: str) -> SingleAgentService:
+        # https://console.groq.com/keys
+        grok_api_key = os.environ.get("GROK_API_KEY")
+        if not grok_api_key:
+            raise RuntimeError("GROK_API_KEY not set in environment. Please set it (e.g., in .env).")
+
+        model = Groq(
+            id="llama-3.3-70b-versatile",
+            api_key=grok_api_key,
+        )
+
+        return AgnoAgentService(model=model,
+                                role=role,
+                                description=description)
+
+    @staticmethod
+    def create_google_agent_service(role: str, description: str) -> SingleAgentService:
+        # https://aistudio.google.com/api-keys
+        google_api_key = os.environ.get("GOOGLE_API_KEY")
+        if not google_api_key:
+            raise RuntimeError("GOOGLE_API_KEY not set in environment. Please set it (e.g., in .env).")
+
+        model = Gemini(
+            id="gemini-3-pro-preview",
+            api_key=google_api_key,
+
+        )
+
+        return AgnoAgentService(model=model,
+                                role=role,
+                                description=description)
+
+    @staticmethod
+    def create_hf_agent_service(role: str, description: str) -> SingleAgentService:
+        # https://huggingface.co/settings/tokens
+        hf_api_key = os.environ.get("HF_API_KEY")
+        if not hf_api_key:
+            raise RuntimeError("HF_API_KEY not set in environment. Please set it (e.g., in .env).")
+
+        # Confirm this model id is available and permitted for your token/account
+        model = HuggingFace(
+            id="deepseek-ai/DeepSeek-V3",
+            api_key=hf_api_key,
+            base_url="https://router.huggingface.co/v1"
+        )
+
+        return AgnoAgentService(model=model,
+                                role=role,
+                                description=description)
+
+    def __post_init__(self):
+        role = "Investment Analyst"
+        description = "Researches stock prices, analyst recommendations, and stock fundamentals."
+        agent_service = self.create_fallback_agent_service(role=role, description=description)
+        self.stock_summarization_use_case: StockSummarizationUseCase = StockSummarizationUseCase(agent_service)

@@ -58,10 +58,8 @@ def handle_stock_daily_digest(message, say):
     stock_summarization_use_case = app.stock_summarization_use_case
 
     for valid_stock in valid_stocks:
-        valid_stock.instructions.append(
-            instruction)
         stock_result = stock_summarization_use_case.execute(MultiStockSummarizationRequest([valid_stock]))
-        say(f"**{valid_stock.stock}**\n{stock_result.value}", thread_ts=thread_ts)
+        say(f"*{valid_stock.stock}*\n{stock_result.value}", thread_ts=thread_ts)
 
 
 if __name__ == "__main__":
