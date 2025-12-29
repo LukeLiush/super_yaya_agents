@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 from typing import List
 
@@ -16,6 +17,22 @@ env_path: Path = Path(__file__).parent / ".env"
 load_dotenv(dotenv_path=env_path)
 SLACK_APP_TOKEN = os.getenv("SLACK_APP_TOKEN")
 SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
+# Null check (Validation)
+missing_vars = []
+if not SLACK_APP_TOKEN:
+    missing_vars.append("SLACK_APP_TOKEN")
+if not SLACK_BOT_TOKEN:
+    missing_vars.append("SLACK_BOT_TOKEN")
+
+if missing_vars:
+    # Print to stderr so it stands out in logs
+    print(f"ERROR: Missing environment variables: {', '.join(missing_vars)}", file=sys.stderr)
+    print("Ensure these are set in the Railway 'Variables' tab.", file=sys.stderr)
+    # Stop the app immediately
+    sys.exit(1)
+
+print("Environment variables loaded successfully.")
+
 app = App(token=SLACK_BOT_TOKEN)
 
 
