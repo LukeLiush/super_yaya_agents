@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  slack-bot:
+    image: super-yaya-slack-bot:local
+    container_name: super-yaya-slack-bot
+    restart: unless-stopped
+    env_file:
+      - ./invesetment_agent/infrastructure/slack/.env
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
