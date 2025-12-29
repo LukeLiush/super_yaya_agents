@@ -10,7 +10,6 @@ on:
       - 'invesetment_agent/infrastructure/config/**'
       - 'invesetment_agent/infrastructure/adapter/**'
       - 'pyproject.toml'
-      - 'uv.lock'
       - 'Dockerfile'
   workflow_dispatch:  # Allow manual trigger
 
