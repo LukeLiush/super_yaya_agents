@@ -44,3 +44,4 @@ jobs:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
+          SLACK_USER_EMAIL_MENTION: ${{ secrets.SLACK_USER_EMAIL_MENTION }}
