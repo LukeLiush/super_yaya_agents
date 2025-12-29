@@ -10,6 +10,9 @@ RUN pip install --no-cache-dir uv
 # Copy dependency files
 COPY pyproject.toml ./
 
+
+RUN uv sync --no-install-project
+
 # Install dependencies using uv
 RUN uv sync --frozen
 
