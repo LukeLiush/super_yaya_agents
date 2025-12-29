@@ -1,8 +1,11 @@
 # Use Python 3.11 slim image as base
 FROM python:3.11-slim
 
-# Set working directory
-WORKDIR /app
+# 1. Define the variable once
+ENV APP_HOME=/app
+
+# 2. Use that variable to set the WORKDIR
+WORKDIR $APP_HOME
 
 # Install uv
 RUN pip install --no-cache-dir uv
@@ -19,7 +22,8 @@ RUN uv sync --frozen
 # Copy the application code
 COPY . .
 
+ENV PATH="$APP_HOME/.venv/bin:$PATH"
+
 # Set the command to run the Slack app
-# Note: Socket Mode doesn't require HTTP port, but Render may need a process to keep running
-CMD ["uv", "run", "python", "-m", "invesetment_agent.infrastructure.slack.app"]
+CMD ["python", "-m", "invesetment_agent.infrastructure.slack.app"]
 
