@@ -25,5 +25,5 @@ COPY . .
 ENV PATH="$APP_HOME/.venv/bin:$PATH"
 
 # Set the command to run the Slack app
-CMD ["python", "-m", "invesetment_agent.infrastructure.slack.app"]
+CMD ["sh", "-c", "env | cut -d'=' -f1 && python -m invesetment_agent.infrastructure.slack.app"]
 
