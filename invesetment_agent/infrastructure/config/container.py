@@ -11,7 +11,7 @@ from agno.models.openrouter import OpenRouter
 from dotenv import load_dotenv
 
 from invesetment_agent.application.port.ai_agent_service import AgentService
-from invesetment_agent.application.usecases.equity_summarization_usecase import EquitySummarizationUseCase
+from invesetment_agent.application.usecases.ticker_summarization_usecase import EquitySummarizationUseCase
 from invesetment_agent.infrastructure.adapter.agno_agent import FallbackAgnoAgentService, FinancialAgnoAgentService
 from invesetment_agent.infrastructure.adapter.agno_financial_team import AgnoFinancialAgent, AgnoStylerAgent, AgnoFinancialTeam
 

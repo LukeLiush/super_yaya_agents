@@ -9,7 +9,6 @@ from agno.run.agent import RunOutput
 from agno.team import Team
 
 from invesetment_agent.application.exceptions import AgentExecutionError
-from invesetment_agent.application.port.ai_agent_service import AgentService
 from invesetment_agent.infrastructure.adapter.agno_financial_team.agno_agent import AgnoAgentService
 from invesetment_agent.infrastructure.adapter.agno_financial_team.utils import current_file_dir, load_instruction
 
