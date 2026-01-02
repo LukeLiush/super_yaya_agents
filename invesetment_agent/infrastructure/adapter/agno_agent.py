@@ -8,13 +8,13 @@ from agno.tools.yfinance import YFinanceTools
 from tenacity import retry_if_exception, stop_after_attempt, wait_exponential, retry
 
 from invesetment_agent.application.exceptions import AgentExecutionError, MultiAgentExecutionError
-from invesetment_agent.application.port.ai_agent_service import SingleAgentService
+from invesetment_agent.application.port.ai_agent_service import AgentService
 
 
-class FallbackAgnoAgentService(SingleAgentService):
+class FallbackAgnoAgentService(AgentService):
 
-    def __init__(self, agent_services: List[SingleAgentService]):
-        self.agent_services: List[SingleAgentService] = agent_services or []
+    def __init__(self, agent_services: List[AgentService]):
+        self.agent_services: List[AgentService] = agent_services or []
 
     def get_answer(self, query: str, instructions: List[str]) -> str:
         agent_errors: List[AgentExecutionError] = []
@@ -29,12 +29,10 @@ class FallbackAgnoAgentService(SingleAgentService):
         raise MultiAgentExecutionError(errors=agent_errors)
 
 
-class AgnoAgentService(SingleAgentService):
+class FinancialAgnoAgentService(AgentService):
 
-    def __init__(self, model: Model, role: str, description: str):
+    def __init__(self, model: Model):
         self.model: Model = model
-        self.role: str = role
-        self.description: str = description
 
     @staticmethod
     def is_rate_limit_error(exception):
@@ -57,8 +55,8 @@ class AgnoAgentService(SingleAgentService):
                 YFinanceTools()
             ],
             debug_mode=True,
-            name=self.role,
-            description=self.description,
+            name="Investment Analyst",
+            description="Researches stock prices, analyst recommendations, and stock fundamentals.",
             instructions=instructions,
         )
 
@@ -67,5 +65,5 @@ class AgnoAgentService(SingleAgentService):
             stream=False,
         )
         if run.status == RunStatus.error:
-            raise AgentExecutionError(message=run.content, agent_name=agent.name, )
+            raise AgentExecutionError(message=run.content, name=agent.name, )
         return run.content

@@ -9,8 +9,8 @@ from dotenv import load_dotenv
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 
-from invesetment_agent.application.dtos.stock_summarization_dtos import SingleStockSummarizationRequest, \
-    MultiStockSummarizationRequest
+from invesetment_agent.application.dtos.stock_summarization_dtos import SingleEquitySummarizationRequest, \
+    MultiEquitySummarizationRequest
 from invesetment_agent.infrastructure.config.container import Application, create_application
 
 env_path: Path = Path(__file__).parent / ".env"
@@ -55,17 +55,17 @@ def handle_stock_daily_digest(message, say):
     text = message.get('text', '')
     symbols = set(text.split("\n")[0].split()[1:])
 
-    invalid_stocks: List[SingleStockSummarizationRequest] = []
-    valid_stocks: List[SingleStockSummarizationRequest] = []
+    invalid_stocks: List[SingleEquitySummarizationRequest] = []
+    valid_stocks: List[SingleEquitySummarizationRequest] = []
     for symbol in symbols:
-        stock_request = SingleStockSummarizationRequest(symbol)
+        stock_request = SingleEquitySummarizationRequest(symbol)
         if stock_request.is_valid():
             valid_stocks.append(stock_request)
         else:
             invalid_stocks.append(stock_request)
 
     if valid_stocks:
-        say(f"valid symbols: {', '.join([valid_stock.stock for valid_stock in valid_stocks])}",
+        say(f"valid symbols: {', '.join([valid_stock.equity for valid_stock in valid_stocks])}",
             thread_ts=thread_ts)
     else:
         say("❌ *No valid stock symbols found!*\n\n*Usage:* `yaya_stock_daily_digest AAPL TSLA MSFT GOOGL AMZN",
@@ -75,8 +75,8 @@ def handle_stock_daily_digest(message, say):
     stock_summarization_use_case = app.stock_summarization_use_case
 
     for valid_stock in valid_stocks:
-        stock_result = stock_summarization_use_case.execute(MultiStockSummarizationRequest([valid_stock]))
-        say(f"*{valid_stock.stock}*\n{stock_result.value}", thread_ts=thread_ts)
+        stock_result = stock_summarization_use_case.execute(MultiEquitySummarizationRequest([valid_stock]))
+        say(f"*{valid_stock.equity}*\n{stock_result.value}", thread_ts=thread_ts)
 
 
 if __name__ == "__main__":

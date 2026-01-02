@@ -9,14 +9,14 @@ from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
 from invesetment_agent.application.dtos.commons import Result
-from invesetment_agent.application.dtos.stock_summarization_dtos import SingleStockSummarizationRequest, \
-    MultiStockSummarizationRequest
+from invesetment_agent.application.dtos.stock_summarization_dtos import SingleEquitySummarizationRequest, \
+    MultiEquitySummarizationRequest
 from invesetment_agent.infrastructure.config.container import Application
 from invesetment_agent.infrastructure.config.container import create_application
 
 # Load environment variables - try project root first, then current directory
-project_root = Path(__file__).parent.parent.parent.parent
-env_path = project_root / ".env"
+current_file_dir = Path(__file__).resolve().parent
+env_path = current_file_dir / ".env"
 if not env_path.exists():
     load_dotenv(verbose=True)  # Fallback to current working directory
 else:
@@ -102,12 +102,12 @@ def main():
 
     # Define stocks to analyze
     stocks = [
-        SingleStockSummarizationRequest("VTSAX"),
+        SingleEquitySummarizationRequest("VTSAX"),
         # Add more stocks here as needed
-        SingleStockSummarizationRequest("VBTLX"),
-        SingleStockSummarizationRequest("FNMA"),
-        SingleStockSummarizationRequest("TSLA"),
-        SingleStockSummarizationRequest("AMZN"),
+        SingleEquitySummarizationRequest("VBTLX"),
+        SingleEquitySummarizationRequest("FNMA"),
+        SingleEquitySummarizationRequest("TSLA"),
+        SingleEquitySummarizationRequest("AMZN"),
     ]
 
     # Get current datetime in PST timezone
@@ -117,7 +117,7 @@ def main():
     time_str = pst_time.strftime("%I:%M %p %Z")  # e.g., "10:30 AM PST"
 
     # Create stock symbols string
-    stock_symbols = " ".join([stock.stock.upper() for stock in stocks])
+    stock_symbols = " ".join([stock.equity.upper() for stock in stocks])
 
     # Create catchy, Slack-friendly initial message
     initial_message: str = (f"📊 *Daily Stock Analysis* | {date_str} at {time_str}\n"
@@ -133,7 +133,7 @@ def main():
 
     # Execute stock summarization and post results as thread replies
     for stock in stocks:
-        result: Result = stock_summarization_use_case.execute(MultiStockSummarizationRequest([stock]))
+        result: Result = stock_summarization_use_case.execute(MultiEquitySummarizationRequest([stock]))
         if result.is_success:
             # Post the summary as a thread reply
             post_to_slack(SLACK_CHANNEL, result.value, thread_ts=thread_ts)

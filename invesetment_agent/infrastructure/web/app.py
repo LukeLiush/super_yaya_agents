@@ -1,7 +1,7 @@
 import streamlit as st
 
-from invesetment_agent.application.dtos.stock_summarization_dtos import SingleStockSummarizationRequest, \
-    MultiStockSummarizationRequest
+from invesetment_agent.application.dtos.stock_summarization_dtos import SingleEquitySummarizationRequest, \
+    MultiEquitySummarizationRequest
 from invesetment_agent.infrastructure.config.container import create_application
 
 st.set_page_config(layout="wide")
@@ -26,7 +26,7 @@ with col2:
 st.subheader("Analysis Instructions")
 
 # Get default instructions from DTO
-default_request = SingleStockSummarizationRequest("dummy")
+default_request = SingleEquitySummarizationRequest("dummy")
 if 'instruction_count' not in st.session_state:
     st.session_state.instruction_count = len(default_request.instructions)
 
@@ -60,8 +60,8 @@ if stocks:
                 st.subheader(f"📊 {symbol}")
                 with st.spinner(f"Analyzing {symbol}..."):
                     try:
-                        request: SingleStockSummarizationRequest = SingleStockSummarizationRequest(symbol.lower(), instructions)
-                        multi_request = MultiStockSummarizationRequest([request])
+                        request: SingleEquitySummarizationRequest = SingleEquitySummarizationRequest(symbol.lower(), instructions)
+                        multi_request = MultiEquitySummarizationRequest([request])
                         result = st.session_state.app.stock_summarization_use_case.execute(multi_request)
                         content = result.value if hasattr(result, 'value') else str(result)
                         st.markdown(content, unsafe_allow_html=True)

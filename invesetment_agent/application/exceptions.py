@@ -3,10 +3,10 @@ from typing import List
 
 class AgentExecutionError(Exception):
 
-    def __init__(self, message: str, agent_name: str = None, cause: Exception = None):
-        self.agent_name = agent_name
+    def __init__(self, message: str, name: str = None, cause: Exception = None):
+        self.agent_name = name
         self.cause = cause
-        base_message = f"[{agent_name}] {message}" if agent_name else message
+        base_message = f"[{name}] {message}" if name else message
         if cause:
             base_message += f" | Caused by: {repr(cause)}"
         super().__init__(base_message)

@@ -5,12 +5,12 @@ import yfinance
 
 
 @dataclass(frozen=True)
-class SingleStockSummarizationRequest:
-    stock: str
+class SingleEquitySummarizationRequest:
+    equity: str
 
     @property
     def query(self) -> str:
-        return f"make a detailed report for an investment trying to invest for {self.stock} stock"
+        return f"Analyze the {self.equity} equity and provide a detailed investment report."
 
     @property
     def instructions(self):
@@ -28,7 +28,7 @@ class SingleStockSummarizationRequest:
                     - NO HTML: Slack will reject it.
                     
                     Tone:
-                    - Clear, concise, and operational.
+                    - operational.
                     - Suitable for posting directly into a Slack channel.
                     - Avoid filler text or conversational language.
     
@@ -37,16 +37,11 @@ class SingleStockSummarizationRequest:
                     - Highlight key metrics or outcomes.
                     - Clearly call out actions, risks, or next steps. 
                     """
-        return [
-            "provide: 5-year, 1-year and 30-day high/low points in a table, \n"
-            "provide: 2-month trend prediction, \n"
-            "provide: buying time recommendation for current month vs next month, \n"
-            "provide: daily monitoring suggestions.\n",
-            slack_instruction]
+        return []
 
     def is_valid(self) -> bool:
         try:
-            ticker = yfinance.Ticker(self.stock)
+            ticker = yfinance.Ticker(self.equity)
             info = ticker.info
             return 'symbol' in info or 'shortName' in info
         except:
@@ -54,5 +49,5 @@ class SingleStockSummarizationRequest:
 
 
 @dataclass(frozen=True)
-class MultiStockSummarizationRequest:
-    single_requests: List[SingleStockSummarizationRequest] = field(default_factory=lambda: [])
+class MultiEquitySummarizationRequest:
+    single_requests: List[SingleEquitySummarizationRequest] = field(default_factory=lambda: [])

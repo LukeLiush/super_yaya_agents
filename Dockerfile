@@ -22,8 +22,6 @@ RUN uv sync --frozen
 # Copy the application code
 COPY . .
 
-ENV PATH="$APP_HOME/.venv/bin:$PATH"
-
 # Set the command to run the Slack app
 CMD ["sh", "-c", "env | cut -d'=' -f1 && uv run python -m invesetment_agent.infrastructure.slack.app"]
 
