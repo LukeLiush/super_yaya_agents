@@ -168,3 +168,31 @@ uv run python -m invesetment_agent.infrastructure.cli.app
 - Slack bot tokens should have minimal required permissions
 - API keys should be rotated periodically
 
+## Developer Guide: Maintaining the Agno Financial Team
+
+This CLI application uses an AI-powered 'Financial Team' built with the Agno (formerly Phidata) framework. To modify the behavior of the AI agents, follow these guidelines:
+
+### 1. Prompt Organization
+- All AI instructions (prompts) are stored as Markdown files in: `invesetment_agent/infrastructure/adapter/agno_financial_team/instructions/`
+- **Key files:**
+    - `team_leader_instructions.md`: High-level orchestration and routing logic.
+    - `news_sentiment_instructions.md`: Specific instructions for the News Sentiment Agent.
+    - `styler_stock_instructions.md`: Formatting templates for stock analysis.
+    - `finance_agent_instructions.md`: Rules for financial data analysis.
+
+### 2. Modifying Agent Logic
+- **Team Structure:** Defined in `invesetment_agent/infrastructure/adapter/agno_financial_team/financial_team.py`. The `AgnoFinancialTeam` class orchestrates multiple sub-agents (Financial, Styler, News Sentiment).
+- **Agent Definitions:** Individual agents are defined in their respective files in the same directory (e.g., `news_sentiment_agent.py`, `styler_agent.py`).
+- **Adding/Removing Agents:** Update `AgnoFinancialTeam.__init__` and the routing logic in its `instructions`.
+
+### 3. Dependency Injection
+- The application is wired together in `invesetment_agent/infrastructure/config/container.py`.
+- If you add new agents or services, register them in the `Application` class.
+
+### 4. Testing Changes
+- You can test your changes locally by running this CLI:
+  ```bash
+  uv run python -m invesetment_agent.infrastructure.cli.app
+  ```
+- Ensure you have the necessary API keys (e.g., `GOOGLE_API_KEY`) in your `.env` file.
+

@@ -14,6 +14,7 @@ from invesetment_agent.application.dtos.stock_summarization_dtos import SingleTi
 from invesetment_agent.infrastructure.config.container import Application
 from invesetment_agent.infrastructure.config.container import create_application
 
+
 # Load environment variables - try project root first, then current directory
 current_file_dir = Path(__file__).resolve().parent
 env_path = current_file_dir / ".env"
