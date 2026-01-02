@@ -50,8 +50,9 @@ The CLI requires the following environment variables to function properly:
 
 ### Additional AI Provider Keys (Optional)
 
-The application supports multiple AI providers. You can configure additional keys if you want to use fallback providers:
+The application supports multiple AI providers. You can configure additional keys if you want to use fallback providers. The `FallbackAgnoAgentService` will attempt to use these in order:
 
+- `GOOGLE_API_KEY` - (Primary) For Google Gemini API access
 - `OPENROUTER_API_KEY` - For OpenRouter API access
 - `DEEPSEEK_API_KEY` - For DeepSeek API access
 - `GROK_API_KEY` - For Groq API access
@@ -97,6 +98,7 @@ After adding a new secret, you need to update the workflow file to use it:
 If the new secret is used in `app.py`, make sure to read it from the environment:
 
 ```python
+import os
 NEW_SECRET = os.getenv("NEW_SECRET_NAME")
 ```
 
@@ -118,7 +120,7 @@ SLACK_USER_EMAIL_MENTION=user@example.com
 
 1. **Initialization**: The CLI loads environment variables and initializes the stock analysis application.
 
-2. **Stock List**: Defines the stocks to analyze (currently: VTSAX, VBTLX, FNMA, TSLA, AMZN).
+2. **Stock List**: Defines the stocks to analyze (currently configured in `app.py`).
 
 3. **Initial Message**: Posts a formatted message to Slack with:
    - Current date and time (PST)
@@ -126,7 +128,7 @@ SLACK_USER_EMAIL_MENTION=user@example.com
    - User mentions (if configured)
 
 4. **Analysis**: For each stock:
-   - Executes the stock summarization use case
+   - Executes the stock summarization use case using `SingleTickerSummarizationRequest`
    - Posts the analysis results as a threaded reply to the initial message
    - Handles errors gracefully with formatted error messages
 

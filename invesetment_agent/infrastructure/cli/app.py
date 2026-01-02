@@ -9,8 +9,8 @@ from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
 from invesetment_agent.application.dtos.commons import Result
-from invesetment_agent.application.dtos.stock_summarization_dtos import SingleEquitySummarizationRequest, \
-    MultiEquitySummarizationRequest
+from invesetment_agent.application.dtos.stock_summarization_dtos import SingleTickerSummarizationRequest, \
+    MultiTickerSummarizationRequest
 from invesetment_agent.infrastructure.config.container import Application
 from invesetment_agent.infrastructure.config.container import create_application
 
@@ -102,12 +102,12 @@ def main():
 
     # Define stocks to analyze
     stocks = [
-        SingleEquitySummarizationRequest("VTSAX"),
-        # Add more stocks here as needed
-        SingleEquitySummarizationRequest("VBTLX"),
-        SingleEquitySummarizationRequest("FNMA"),
-        SingleEquitySummarizationRequest("TSLA"),
-        SingleEquitySummarizationRequest("AMZN"),
+        SingleTickerSummarizationRequest("VTSAX"),
+        #sAdd more stocks here as needed
+        SingleTickerSummarizationRequest("VBTLX"),
+        SingleTickerSummarizationRequest("FNMA"),
+        SingleTickerSummarizationRequest("TSLA"),
+        SingleTickerSummarizationRequest("AMZN"),
     ]
 
     # Get current datetime in PST timezone
@@ -117,7 +117,7 @@ def main():
     time_str = pst_time.strftime("%I:%M %p %Z")  # e.g., "10:30 AM PST"
 
     # Create stock symbols string
-    stock_symbols = " ".join([stock.equity.upper() for stock in stocks])
+    stock_symbols = " ".join([stock.ticker.upper() for stock in stocks])
 
     # Create catchy, Slack-friendly initial message
     initial_message: str = (f"📊 *Daily Stock Analysis* | {date_str} at {time_str}\n"
@@ -133,7 +133,7 @@ def main():
 
     # Execute stock summarization and post results as thread replies
     for stock in stocks:
-        result: Result = stock_summarization_use_case.execute(MultiEquitySummarizationRequest([stock]))
+        result: Result = stock_summarization_use_case.execute(MultiTickerSummarizationRequest([stock]))
         if result.is_success:
             # Post the summary as a thread reply
             post_to_slack(SLACK_CHANNEL, result.value, thread_ts=thread_ts)
