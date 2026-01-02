@@ -13,7 +13,8 @@ from dotenv import load_dotenv
 from invesetment_agent.application.port.ai_agent_service import AgentService
 from invesetment_agent.application.usecases.equity_summarization_usecase import EquitySummarizationUseCase
 from invesetment_agent.infrastructure.adapter.agno_agent import FallbackAgnoAgentService, FinancialAgnoAgentService
-from invesetment_agent.infrastructure.adapter.agno_financial_agent import AgnoFinancialAgent
+from invesetment_agent.infrastructure.adapter.agno_financial_team import AgnoFinancialAgent, AgnoStylerAgent, AgnoFinancialTeam
+
 
 load_dotenv(verbose=True)
 
@@ -80,8 +81,8 @@ class Application:
             id="llama-3.3-70b-versatile",
             api_key=grok_api_key,
         )
-
-        return FinancialAgnoAgentService(model=model)
+        AgnoFinancialAgent(model=model)
+        return AgnoFinancialTeam(model=model)
 
     @staticmethod
     def create_google_agent_service() -> AgentService:
@@ -95,7 +96,13 @@ class Application:
             api_key=google_api_key,
 
         )
-        return AgnoFinancialAgent.from_single_model(model=model)
+
+
+        team: AgentService = AgnoFinancialTeam(model=model,
+                          agno_agent_services=[
+                              AgnoFinancialAgent(model=model),
+                              AgnoStylerAgent(model=model)])
+        return team
 
     @staticmethod
     def create_hf_agent_service() -> AgentService:

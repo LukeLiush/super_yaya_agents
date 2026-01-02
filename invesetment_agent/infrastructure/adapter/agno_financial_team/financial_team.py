@@ -8,23 +8,15 @@ from agno.models.base import Model
 from agno.run import RunStatus
 from agno.run.team import TeamRunOutput
 from agno.team import Team
-from agno.tools.yfinance import YFinanceTools
 
 from invesetment_agent.application.exceptions import AgentExecutionError
-from invesetment_agent.application.external_service.sec_tools import build_insider_table
-from invesetment_agent.application.port.ai_agent_service import AgentService
+from invesetment_agent.infrastructure.adapter.agno_financial_team.utils import load_instruction, current_file_dir
+from invesetment_agent.infrastructure.adapter.agno_financial_team.agno_agent import AgnoAgentService
 
-
-# --- 1. LOAD INSTRUCTION FILES ---
-def load_instruction(path: Path):
-    if path.exists():
-        return path.read_text(encoding="utf-8")
-    return f"Error: {path} not found."
-
+finance_rules = load_instruction(current_file_dir / "instructions" / "finance_agent_instructions.md")
 
 current_file_dir = Path(__file__).resolve().parent
 instructions_path = current_file_dir / "instructions"
-finance_rules = load_instruction(instructions_path / "finance_agent_instructions.md")
 leader_rules = load_instruction(instructions_path / "team_leader_instructions.md")
 stock_template = load_instruction(instructions_path / "styler_stock_instructions.md")
 equity_fund_template = load_instruction(instructions_path / "styler_equity_fund_instructions.md")
@@ -32,49 +24,19 @@ bond_etf_template = load_instruction(instructions_path / "styler_bond_etf_instru
 bond_fund_template = load_instruction(instructions_path / "styler_bond_fund_instructions.md")
 
 
-class AgnoFinancialAgent(AgentService):
+class AgnoFinancialTeam(AgnoAgentService):
+    def get_agent(self) -> Union[Agent | Team]:
+        return self.team_leader
+
     def __init__(self,
-                 style_model: Model,
-                 finance_model: Model,
-                 team_model: Model,
+                 agno_agent_services: List[AgnoAgentService],
+                 model: Model,
                  db: Optional[Union[BaseDb, AsyncBaseDb]] = None):
-        self.style_model: Model = style_model
-        self.finance_model: Model = finance_model
-        self.team_model: Model = team_model
-        self.db: Optional[Union[BaseDb, AsyncBaseDb]] = db
-
-    @classmethod
-    def from_single_model(cls,
-                          model: Model,
-                          db: Optional[Union[BaseDb, AsyncBaseDb]] = None) -> "FinancialAgnoTeamService":
-        return cls(style_model=model,
-                   finance_model=model,
-                   team_model=model,
-                   db=db)
-
-    def get_answer(self, query: str, instructions: List[str]) -> str:
-        # Tools agent to fetch the raw data
-        finance_agent = Agent(
-            name="Finance_Agent",
-            role="Data Provider",
-            tools=[YFinanceTools(), build_insider_table],
-            model=self.finance_model,
-            instructions=[finance_rules.format(insider_tool_name=build_insider_table.name)],
-            debug_mode=True,
-        )
-
-        styler_agent = Agent(
-            name="Slack_Styler",
-            role="Designer",
-            description="Transforms data into Slack-formatted reports using analogies.",
-            model=self.style_model,
-            instructions=["Wait for the Team Leader to provide the specific MD template based on asset type."]
-        )
-
-        team_leader = Team(
+        self.team_leader = Team(
             name="Investment_Team_Leader",
-            members=[finance_agent, styler_agent],
-            model=self.team_model,
+            members=[agno_agent_service.get_agent() for agno_agent_service in agno_agent_services],
+            model=model,
+            db=db,
             instructions=
             [
                 "--- DYNAMIC ROUTING LOGIC ---",
@@ -89,10 +51,12 @@ class AgnoFinancialAgent(AgentService):
             debug_mode=True,
             markdown=False,
         )
-        run: TeamRunOutput = team_leader.run(
+
+    def get_answer(self, query: str, instructions: List[str]) -> str:
+        run: TeamRunOutput = self.team_leader.run(
             query,
             stream=False,
         )
         if run.status == RunStatus.error:
-            raise AgentExecutionError(message=run.content, name=team_leader.name, )
+            raise AgentExecutionError(message=run.content, name=run.team_name, )
         return run.content
