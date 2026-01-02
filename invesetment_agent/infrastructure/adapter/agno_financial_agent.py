@@ -9,63 +9,9 @@ from agno.run import RunStatus
 from agno.run.team import TeamRunOutput
 from agno.team import Team
 from agno.tools.yfinance import YFinanceTools
-import yfinance as yf
-import json
-
-class EnhancedYFinanceTools(YFinanceTools):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.tools.append(self.get_insider_transactions)
-
-    def get_insider_transactions(self, symbol: str) -> str:
-        """Use this function to get insider transactions for a given stock symbol.
-
-        Args:
-            symbol (str): The stock symbol.
-
-        Returns:
-            str: JSON containing insider transactions summary or error message.
-        """
-        try:
-            from datetime import datetime, timedelta
-            import pandas as pd
-            stock = yf.Ticker(symbol, session=self.session)
-            df = stock.insider_transactions
-            if df is None or df.empty:
-                return f"No insider transactions found for {symbol}"
-            
-            # Ensure 'Start Date' is datetime
-            df['Start Date'] = pd.to_datetime(df['Start Date'])
-            
-            import numpy as np
-            trades = []
-            # Sort by date descending and take top 10
-            df = df.sort_values(by='Start Date', ascending=False)
-            
-            for _, row in df.head(10).iterrows():
-                trade_type = str(row['Transaction']).lower()
-                # Simple heuristic: if it's 'Sale', it's a sell. Otherwise often a buy or grant.
-                # yfinance usually has 'Sale' or 'Purchase'
-                is_sell = "sale" in trade_type
-                is_buy = "purchase" in trade_type or "buy" in trade_type
-                
-                trades.append({
-                    "Insider": row['Insider'],
-                    "Position": row['Position'],
-                    "Date": row['Start Date'].strftime('%Y-%m-%d'),
-                    "Shares": int(row['Shares']) if not pd.isna(row['Shares']) else 0,
-                    "Price": float(row['Value'] / row['Shares']) if not pd.isna(row['Value']) and not pd.isna(row['Shares']) and row['Shares'] != 0 else 0.0,
-                    "Value": float(row['Value']) if not pd.isna(row['Value']) else 0.0,
-                    "Type": row['Transaction'],
-                    "Action": "Sell" if is_sell else "Buy" if is_buy else "Other",
-                    "Details": row['Text'] if not pd.isna(row['Text']) else ""
-                })
-            
-            return json.dumps({"trades": trades}, indent=2)
-        except Exception as e:
-            return f"Error fetching insider transactions for {symbol}: {e}"
 
 from invesetment_agent.application.exceptions import AgentExecutionError
+from invesetment_agent.application.external_service.sec_tools import build_insider_table
 from invesetment_agent.application.port.ai_agent_service import AgentService
 
 
@@ -111,9 +57,9 @@ class AgnoFinancialAgent(AgentService):
         finance_agent = Agent(
             name="Finance_Agent",
             role="Data Provider",
-            tools=[EnhancedYFinanceTools()],
+            tools=[YFinanceTools(), build_insider_table],
             model=self.finance_model,
-            instructions=[finance_rules],
+            instructions=[finance_rules.format(insider_tool_name=build_insider_table.name)],
             debug_mode=True,
         )
 
