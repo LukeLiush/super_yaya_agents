@@ -16,7 +16,7 @@ class EquitySummarizationUseCase:
         for single_request in multi_ticker_summarization_request.single_requests:
             try:
                 answer: str = self.agent_service.get_answer(
-                    query=f"make a detailed report for an investment trying to invest for {single_request.ticker}",
+                    query=f"Analyze the ticker {single_request.ticker} to provide a detailed investment report",
                     instructions=single_request.instructions)
                 answers.append(answer)
             except MultiAgentExecutionError as e:

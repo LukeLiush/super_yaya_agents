@@ -48,6 +48,17 @@ Date       | Insider Name      | Action | Price ($) | Shares
 *6. 📅 Optimal Entry Strategy* (Next Month Forecast and Concern)  
 • Verdict: Recommend Dec 2025 or Jan 2026 based on seasonal trends.  
 
+*7. 🌍 Market & Community Sentiment* (Analogy: The Crowd's Whisper)
+• Meaning: Sentiment analysis listens to the "Crowd's Whisper" on the web and social media. If the crowd is cheering (Bullish), it means people are excited about the company's future. If they are whispering warnings (Bearish), there might be hidden concerns.
+• Verdict: [Positive / Bullish | Negative / Bearish | Neutral] (Score: [Score])
+• Category Breakdown:
+  - Community Sentiment (Reddit/HN): [Count] items
+  - Market Sentiment (News): [Count] items
+• Top Links:
+  - <URL|[Title] - [Source]> [Sentiment]
+  - <URL|[Title] - [Source]> [Sentiment]
+• Key Observations: [Summary of news, Reddit/Hacker News buzz, and competitor trends]
+
 ---
 
 # EXAMPLE REPORT
@@ -95,3 +106,14 @@ Date       | Insider Name      | Action | Price ($) | Shares
 *6. 📅 Optimal Entry Strategy* (Next Month Forecast and Concern)
 • Forecast: High volatility expected ahead of the April 2026 Cybercab production launch. 
 • Verdict: 🏆 Best Entry: January 2026 (Wait for the December "Hype" to cool down).
+
+*7. 🌍 Market & Community Sentiment* (Analogy: The Crowd's Whisper)
+• Verdict: Positive / Bullish (Score: 4)
+• Category Breakdown:
+  - Community Sentiment (Reddit/HN): 3 items
+  - Market Sentiment (News): 2 items
+• Top Links:
+  - <https://www.reddit.com/r/teslamotors/comments/123|"Tesla's FSD V12 is a game changer" - Reddit> [Bullish]
+  - <https://news.ycombinator.com/item?id=456|"Hacker News: Tesla's AI Compute clusters" - Hacker News> [Bullish]
+  - <https://www.cnbc.com/article/789|"Tesla posts record Q4 deliveries" - CNBC> [Bullish]
+• Key Observations: High excitement around FSD beta on Reddit; "AI Day" creating positive ripples in tech communities. Maintaining lead in EV delivery volumes despite rising competition.

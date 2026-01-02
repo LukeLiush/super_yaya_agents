@@ -22,6 +22,7 @@ stock_template = load_instruction(instructions_path / "styler_stock_instructions
 equity_fund_template = load_instruction(instructions_path / "styler_equity_fund_instructions.md")
 bond_etf_template = load_instruction(instructions_path / "styler_bond_etf_instructions.md")
 bond_fund_template = load_instruction(instructions_path / "styler_bond_fund_instructions.md")
+news_sentiment_template = load_instruction(instructions_path / "news_sentiment_instructions.md")
 
 
 class AgnoFinancialTeam(AgnoAgentService):
@@ -43,6 +44,7 @@ class AgnoFinancialTeam(AgnoAgentService):
                 "Step 1: Use Finance_Agent to determine the ticker type. Supported types: Stock, Equity Fund, Mutual Fund, Index Fund, Bond ETF, Bond Fund.",
                 "Step 1a: Validate the ticker type. If the detected type is NOT one of the supported types, raise a warning: Ticker type unknown. Please verify input.",
                 f"Step 2: IF STOCK -> Instruct Styler to use THIS template: \n{stock_template}",
+                f"Step 2a: IF STOCK -> Also instruct News_Sentiment_Agent to provide a sentiment report using THIS template: \n{news_sentiment_template}",
                 f"Step 3: IF EQUITY FUND, MUTUAL FUND, or INDEX FUND -> Instruct Styler to use THIS template: \n{equity_fund_template}",
                 f"Step 4: IF BOND ETF -> Instruct Styler to use THIS template: \n{bond_etf_template}",
                 f"Step 5: IF BOND FUND -> Instruct Styler to use THIS template: \n{bond_fund_template}",
