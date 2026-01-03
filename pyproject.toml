@@ -24,3 +24,40 @@ dependencies = [
     "uvicorn>=0.40.0",
     "yfinance>=1.0",
 ]
+
+[tool.ruff]
+# Target version
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+# Enable specific rule sets
+select = [
+    "E",   # pycodestyle errors
+    "F",   # Pyflakes (includes unused imports/variables)
+    "I",   # isort (import sorting)
+    "B",   # flake8-bugbear (finds bugs)
+    "UP",  # pyupgrade (modernize code)
+    "RUF", # Ruff-specific rules
+]
+ignore = ["F401"] # Ignore unused imports globally for now to avoid breaking __init__.py exports, or fix selectively
+
+# Allow autofix for all enabled rules (when possible)
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.isort]
+known-first-party = ["invesetment_agent"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false # Set to true later for stricter checks
+ignore_missing_imports = true
+
+[dependency-groups]
+dev = [
+    "mypy>=1.19.1",
+    "ruff>=0.14.10",
+]

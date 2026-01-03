@@ -1,12 +1,11 @@
 import os
 
-from agno.agent import Agent
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
-from agno.tools import tool
 
 SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
 slack_client = WebClient(token="SLACK_BOT_TOKEN")
+
 
 def post_to_slack(channel: str, text: str) -> str:
     """Post a message to a Slack channel.

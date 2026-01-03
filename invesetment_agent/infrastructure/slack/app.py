@@ -3,14 +3,16 @@ from __future__ import annotations
 import os
 import sys
 from pathlib import Path
-from typing import List
+from typing import Any
 
 from dotenv import load_dotenv
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 
-from invesetment_agent.application.dtos.stock_summarization_dtos import SingleTickerSummarizationRequest, \
-    MultiTickerSummarizationRequest
+from invesetment_agent.application.dtos.stock_summarization_dtos import (
+    MultiTickerSummarizationRequest,
+    SingleTickerSummarizationRequest,
+)
 from invesetment_agent.infrastructure.config.container import Application, create_application
 
 env_path: Path = Path(__file__).parent / ".env"
@@ -37,26 +39,26 @@ app = App(token=SLACK_BOT_TOKEN)
 
 
 @app.event("app_mention")
-def handle_mention(event, say):
+def handle_mention(event: dict[str, Any], say: Any) -> None:
     """Respond when bot is mentioned"""
-    user = event['user']
-    text = event['text']
+    user = event["user"]
+    text = event["text"]
 
     # Simple response
     say(f"Hi <@{user}>! You said: {text}")
 
 
 @app.message("yaya_stock_daily_digest")
-def handle_stock_daily_digest(message, say):
+def handle_stock_daily_digest(message: dict[str, Any], say: Any) -> None:
     """Respond to 'hello' messages"""
     thread_ts = message["ts"]
-    say(f"Wait for one sec!", thread_ts=thread_ts)
+    say("Wait for one sec!", thread_ts=thread_ts)
 
-    text = message.get('text', '')
+    text: str = message.get("text", "")
     symbols = set(text.split("\n")[0].split()[1:])
 
-    invalid_stocks: List[SingleTickerSummarizationRequest] = []
-    valid_stocks: List[SingleTickerSummarizationRequest] = []
+    invalid_stocks: list[SingleTickerSummarizationRequest] = []
+    valid_stocks: list[SingleTickerSummarizationRequest] = []
     for symbol in symbols:
         stock_request = SingleTickerSummarizationRequest(symbol)
         if stock_request.is_valid():
@@ -65,14 +67,15 @@ def handle_stock_daily_digest(message, say):
             invalid_stocks.append(stock_request)
 
     if valid_stocks:
-        say(f"valid symbols: {', '.join([valid_stock.ticker for valid_stock in valid_stocks])}",
-            thread_ts=thread_ts)
+        say(f"valid symbols: {', '.join([valid_stock.ticker for valid_stock in valid_stocks])}", thread_ts=thread_ts)
     else:
-        say("❌ *No valid stock symbols found!*\n\n*Usage:* `yaya_stock_daily_digest AAPL TSLA MSFT GOOGL AMZN",
-            thread_ts=thread_ts)
+        say(
+            "❌ *No valid stock symbols found!*\n\n*Usage:* `yaya_stock_daily_digest AAPL TSLA MSFT GOOGL AMZN",
+            thread_ts=thread_ts,
+        )
 
-    app: Application = create_application()
-    stock_summarization_use_case = app.stock_summarization_use_case
+    _app: Application = create_application()
+    stock_summarization_use_case = _app.stock_summarization_use_case
 
     for valid_stock in valid_stocks:
         stock_result = stock_summarization_use_case.execute(MultiTickerSummarizationRequest([valid_stock]))

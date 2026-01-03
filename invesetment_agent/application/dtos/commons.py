@@ -5,9 +5,10 @@ These types provide a consistent way to handle success and failure cases across 
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Optional, Generic, TypeVar, Self
+from typing import Any, Generic, Self, TypeVar
 
-T = TypeVar('T')  # Success type
+T = TypeVar("T")  # Success type
+
 
 class ErrorCode(Enum):
     """Enumeration of possible error codes in the application layer."""
@@ -36,7 +37,7 @@ class Error:
 
     code: ErrorCode
     message: str
-    details: Optional[dict[str, Any]] = None
+    details: dict[str, Any] | None = None
 
     @classmethod
     def not_found(cls, entity: str, entity_id: str) -> Self:
@@ -79,12 +80,11 @@ class Result(Generic[T]):
         failure: Class method to create a failed result.
     """
 
-    _value: Optional[T] = None
-    _error: Optional[Error] = None
+    _value: T | None = None
+    _error: Error | None = None
 
     def __post_init__(self):
-        if (self._value is None and self._error is None) or \
-           (self._value is not None and self._error is not None):
+        if (self._value is None and self._error is None) or (self._value is not None and self._error is not None):
             raise ValueError("Either value or error must be provided, but not both")
 
     @property
@@ -107,11 +107,11 @@ class Result(Generic[T]):
         return self._error
 
     @classmethod
-    def success(cls, value: T) -> 'Result[T]':
+    def success(cls, value: T) -> "Result[T]":
         """Create a successful result with the given value."""
         return cls(_value=value)
 
     @classmethod
-    def failure(cls, error: Error) -> 'Result[T]':
+    def failure(cls, error: Error) -> "Result[T]":
         """Create a failed result with the given error."""
         return cls(_error=error)

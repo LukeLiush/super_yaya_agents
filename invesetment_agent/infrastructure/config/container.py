@@ -13,9 +13,12 @@ from dotenv import load_dotenv
 from invesetment_agent.application.port.ai_agent_service import AgentService
 from invesetment_agent.application.usecases.ticker_summarization_usecase import EquitySummarizationUseCase
 from invesetment_agent.infrastructure.adapter.agno_agent import FallbackAgnoAgentService, FinancialAgnoAgentService
-from invesetment_agent.infrastructure.adapter.agno_financial_team import AgnoFinancialAgent, AgnoStylerAgent, \
-    AgnoFinancialTeam, AgnoNewsSentimentAgent
-
+from invesetment_agent.infrastructure.adapter.agno_financial_team import (
+    AgnoFinancialAgent,
+    AgnoFinancialTeam,
+    AgnoNewsSentimentAgent,
+    AgnoStylerAgent,
+)
 
 load_dotenv(verbose=True)
 
@@ -32,13 +35,15 @@ class Application:
         # groq = self.create_grok_agent_service()
         # deepseek = self.create_deepseek_agent_service()
         # openrouter = self.create_openrouter_agent_service()
-        return FallbackAgnoAgentService(agent_services=[
-            # hf_service,
-            google_service,
-            # groq,
-            # deepseek,
-            # openrouter,
-        ])
+        return FallbackAgnoAgentService(
+            agent_services=[
+                # hf_service,
+                google_service,
+                # groq,
+                # deepseek,
+                # openrouter,
+            ]
+        )
 
     @staticmethod
     def create_openrouter_agent_service() -> AgentService:
@@ -52,10 +57,11 @@ class Application:
             # id="nex-agi/deepseek-v3.1-nex-n1:free",
             id="google/gemini-2.0-flash-exp:free",
             api_key=openrouter_api_key,
-
         )
 
-        return FinancialAgnoAgentService(model=model, )
+        return FinancialAgnoAgentService(
+            model=model,
+        )
 
     @staticmethod
     def create_deepseek_agent_service() -> AgentService:
@@ -69,7 +75,9 @@ class Application:
             api_key=deepseek_api_key,
         )
 
-        return FinancialAgnoAgentService(model=model, )
+        return FinancialAgnoAgentService(
+            model=model,
+        )
 
     @staticmethod
     def create_grok_agent_service() -> AgentService:
@@ -82,8 +90,14 @@ class Application:
             id="llama-3.3-70b-versatile",
             api_key=grok_api_key,
         )
-        AgnoFinancialAgent(model=model)
-        return AgnoFinancialTeam(model=model)
+        return AgnoFinancialTeam(
+            model=model,
+            agno_agent_services=[
+                AgnoFinancialAgent(model=model),
+                AgnoStylerAgent(model=model),
+                AgnoNewsSentimentAgent(model=model),
+            ],
+        )
 
     @staticmethod
     def create_google_agent_service() -> AgentService:
@@ -117,8 +131,8 @@ class Application:
             agno_agent_services=[
                 AgnoFinancialAgent(model=sub_agent_model),
                 AgnoStylerAgent(model=sub_agent_model),
-                AgnoNewsSentimentAgent(model=sub_agent_model)
-            ]
+                AgnoNewsSentimentAgent(model=sub_agent_model),
+            ],
         )
         return team
 
@@ -131,13 +145,11 @@ class Application:
 
         # Confirm this model id is available and permitted for your token/account
         model = HuggingFace(
-            id="deepseek-ai/DeepSeek-V3",
-            api_key=hf_api_key,
-            base_url="https://router.huggingface.co/v1"
+            id="deepseek-ai/DeepSeek-V3", api_key=hf_api_key, base_url="https://router.huggingface.co/v1"
         )
 
         return FinancialAgnoAgentService(model=model)
 
-    def __post_init__(self):
-        agent_service = self.create_fallback_agent_service()
+    def __post_init__(self) -> None:
+        agent_service: AgentService = self.create_fallback_agent_service()
         self.stock_summarization_use_case: EquitySummarizationUseCase = EquitySummarizationUseCase(agent_service)

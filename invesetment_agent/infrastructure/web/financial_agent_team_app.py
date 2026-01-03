@@ -1,7 +1,7 @@
 import os
 
 import boto3
-from agno.agent import Agent
+from agno.agent import Agent, RemoteAgent
 from agno.db.sqlite import SqliteDb
 from agno.models.aws import AwsBedrock
 from agno.os import AgentOS
@@ -26,13 +26,13 @@ boto_session = boto3.Session(**session_kwargs)
 
 # Setup database for storage
 db = SqliteDb(db_file="agents.db")
-model=AwsBedrock(
-        id="us.anthropic.claude-3-7-sonnet-20250219-v1:0",
-        aws_region=aws_region,
-        session=boto_session,
-        max_tokens=1024,
-        temperature=0.7,
-    )
+model = AwsBedrock(
+    id="us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+    aws_region=aws_region,
+    session=boto_session,
+    max_tokens=1024,
+    temperature=0.7,
+)
 web_agent = Agent(
     name="Web Agent",
     role="Search the web for information",
@@ -47,9 +47,7 @@ finance_agent = Agent(
     name="Finance Agent",
     role="Get financial data",
     model=model,
-    tools=[
-        YFinanceTools()
-    ],
+    tools=[YFinanceTools()],
     instructions=["Always use tables to display data"],
     db=db,
     add_history_to_context=True,
@@ -64,7 +62,7 @@ agent_team = Team(
     markdown=True,
 )
 
-agent_os = AgentOS(agents=agent_team.members)
+agent_os = AgentOS(agents=[m for m in (agent_team.members or []) if isinstance(m, (Agent, RemoteAgent))])
 app = agent_os.get_app()
 
 if __name__ == "__main__":

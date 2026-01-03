@@ -1,25 +1,22 @@
 import json
 import os
 import subprocess
-from typing import Dict
 
 import boto3  # type: ignore
-import requests
+import requests  # type: ignore
 
 
 def is_mlflow_tracking_uri_alive(uri: str) -> bool:
     try:
         response = requests.get(uri)
-        return response.status_code == 200
+        return bool(response.status_code == 200)
     except requests.RequestException:
         return False
 
 
-def run_shell_command(command: str, env: Dict[str, str]) -> str:
+def run_shell_command(command: str, env: dict[str, str]) -> str:
     try:
-        result = subprocess.run(
-            command.split(), capture_output=True, text=True, check=True
-        )
+        result = subprocess.run(command.split(), capture_output=True, text=True, check=True)
         return result.stdout
     except subprocess.CalledProcessError as e:
         raise e
@@ -28,15 +25,15 @@ def run_shell_command(command: str, env: Dict[str, str]) -> str:
 def run_bedrock_access_role_229811874124():
     home = os.getenv("HOME")
     return run_shell_command(
-        command=f"{home}/.toolbox/bin/ada credentials print --provider=conduit --role=BedrockAccessRole --account=229811874124",
+        command=f"{home}/.toolbox/bin/ada credentials "
+        f"print --provider=conduit "
+        f"--role=BedrockAccessRole --account=229811874124",
         env=os.environ.copy(),
     )
 
 
-def set_kb_bedrock_aws_credentials_env_variables():
-    _env: Dict[str, str] = to_aws_credentials(
-        ada_credentials=json.loads(run_bedrock_access_role_229811874124())
-    )
+def set_kb_bedrock_aws_credentials_env_variables() -> None:
+    _env: dict[str, str] = to_aws_credentials(ada_credentials=json.loads(run_bedrock_access_role_229811874124()))
     os.environ["AWS_ACCESS_KEY_ID"] = _env["aws_access_key_id"]
     os.environ["AWS_SECRET_ACCESS_KEY"] = _env["aws_secret_access_key"]
     os.environ["AWS_SESSION_TOKEN"] = _env["aws_session_token"]
@@ -45,7 +42,7 @@ def set_kb_bedrock_aws_credentials_env_variables():
     os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
 
 
-def to_aws_credentials(ada_credentials: Dict[str, str]) -> Dict[str, str]:
+def to_aws_credentials(ada_credentials: dict[str, str]) -> dict[str, str]:
     required_fields = ["AccessKeyId", "SecretAccessKey", "SessionToken"]
     for field in required_fields:
         if field not in ada_credentials:
