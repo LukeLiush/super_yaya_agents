@@ -36,24 +36,25 @@ class AgnoFinancialTeam(AgnoAgentService):
             members=[agno_agent_service.get_agent() for agno_agent_service in agno_agent_services],
             model=model,
             db=db,
+            reasoning=False,
             instructions=[
-                "--- DYNAMIC ROUTING LOGIC ---",
-                "Step 1: Use Finance_Agent to determine the ticker type. Supported types: "
-                "Stock, Equity Fund, Mutual Fund, Index Fund, Bond ETF, Bond Fund.",
-                "Step 1a: Validate the ticker type. If the detected type is NOT one of the supported types, "
-                "raise a warning: Ticker type unknown. Please verify input.",
-                f"Step 2: IF STOCK -> Instruct Styler to use THIS template: \n{stock_template}",
-                f"Step 2a: IF STOCK -> Also instruct News_Sentiment_Agent to provide a sentiment report, "
-                f"using THIS template: \n{news_sentiment_template}",
-                f"Step 3: IF EQUITY FUND, MUTUAL FUND, or INDEX FUND -> "
-                f"Instruct Styler to use THIS template: \n{equity_fund_template}",
-                f"Step 4: IF BOND ETF -> Instruct Styler to use THIS template: \n{bond_etf_template}",
-                f"Step 5: IF BOND FUND -> Instruct Styler to use THIS template: \n{bond_fund_template}",
-                "Step 6: Audit the output. Ensure single-asterisk bolding (*Text*) and ASCII tables in ``` blocks.",
+                "--- ASSET TYPE VALIDATION & ROUTING ---",
+                "1. MANDATORY VALIDATION: Use Finance_Agent to identify the ticker's asset type.",
+                "   Supported types: [Stock, Equity Fund, Mutual Fund, Index Fund, Bond ETF, Bond Fund].",
+                "2. VALIDITY CHECK: If the identified type is not in the supported list above, "
+                "stop and inform the user that the asset type is currently unsupported.",
+                "3. TEMPLATE SELECTION:",
+                f"   - IF STOCK: Use THIS template for Styler: \n{stock_template}\n"
+                f"     AND instruct News_Sentiment_Agent with THIS template: \n{news_sentiment_template}",
+                f"   - IF EQUITY/MUTUAL/INDEX FUND: Use THIS template for Styler: \n{equity_fund_template}",
+                f"   - IF BOND ETF: Use THIS template for Styler: \n{bond_etf_template}",
+                f"   - IF BOND FUND: Use THIS template for Styler: \n{bond_fund_template}",
+                "4. FINAL AUDIT: Verify that Slack_Styler followed the selected template exactly, "
+                "including single-asterisk bolding (*Text*) and ASCII tables in ``` blocks.",
                 leader_rules,
             ],
             debug_mode=True,
-            markdown=False,
+            markdown=True,
         )
 
     def get_answer(self, query: str) -> str:
