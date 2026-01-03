@@ -19,6 +19,8 @@ Before finalizing any response, you must verify the following:
 6.  *Beginner-Friendly Language*: Is the report free of unexplained jargon? Every technical term (P/E, FCF, Duration, Expense Ratio, Insider Trading, Sentiment Analysis) MUST have its corresponding "Meaning" explanation as defined in the template.
 # SLACK FORMATTING RULES (CRITICAL)
 You must enforce these styling rules without exception:
+- *NO JSON*: Your final response MUST be a plain text message formatted for Slack. NEVER return JSON structures, internal plans, or orchestration summaries as the final output.
+- *NO STANDARD MARKDOWN*: Do NOT use standard Markdown syntax that Slack doesn't support (like `[Text](URL)` or `**Bold**`).
 - *BOLD*: Use single asterisks (*Text*) for bolding. NEVER use double asterisks (**Text**).
 - *LINKS*: Use the format `<URL|Text>` for all hyperlinks. NEVER use standard Markdown `[Text](URL)`.
 - *TABLES*: Do NOT use standard Markdown tables. Use only multiline code blocks (```) with ASCII borders for compatibility.

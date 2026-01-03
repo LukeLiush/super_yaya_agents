@@ -99,11 +99,11 @@ def main() -> None:
 
     # Define stocks to analyze
     stocks = [
-        # SingleTickerSummarizationRequest("VTSAX"),
+        SingleTickerSummarizationRequest("VTSAX"),
         # sAdd more stocks here as needed
-        # SingleTickerSummarizationRequest("VBTLX"),
-        # SingleTickerSummarizationRequest("FNMA"),
-        # SingleTickerSummarizationRequest("TSLA"),
+        SingleTickerSummarizationRequest("VBTLX"),
+        SingleTickerSummarizationRequest("FNMA"),
+        SingleTickerSummarizationRequest("TSLA"),
         SingleTickerSummarizationRequest("AMZN"),
     ]
 

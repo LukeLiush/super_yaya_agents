@@ -49,8 +49,9 @@ class AgnoFinancialTeam(AgnoAgentService):
                 f"   - IF EQUITY/MUTUAL/INDEX FUND: Use THIS template for Styler: \n{equity_fund_template}",
                 f"   - IF BOND ETF: Use THIS template for Styler: \n{bond_etf_template}",
                 f"   - IF BOND FUND: Use THIS template for Styler: \n{bond_fund_template}",
-                "4. FINAL AUDIT: Verify that Slack_Styler followed the selected template exactly, "
-                "including single-asterisk bolding (*Text*) and ASCII tables in ``` blocks.",
+                "4. FINAL AUDIT: Verify that Slack_Styler followed the selected template exactly. "
+                "CRITICAL: The final output MUST be a plain text message for Slack. "
+                "STRICTLY FORBIDDEN: JSON structures, standard Markdown (like **Bold**), or internal reasoning logs.",
                 leader_rules,
             ],
             debug_mode=True,

@@ -80,14 +80,14 @@ class Application:
         # - gemini-2.0-flash for all sub-agents - High speed, low cost, excellent performance
 
         leader_model = Gemini(
-            # id="gemini-pro-latest",
-            id="gemini-3-flash-preview",
+            id="gemini-pro-latest",
+            #id="gemini-3-flash-preview",
             api_key=google_api_key,
         )
 
         sub_agent_model = Gemini(
-            # id="gemini-2.0-flash",0-flash
-            id="gemini-3-flash-preview",
+            id="gemini-2.0-flash",
+            #id="gemini-3-flash-preview",
             api_key=google_api_key,
         )
 
