@@ -3,7 +3,6 @@ import os
 from agno.agent import Agent
 from agno.db.sqlite import SqliteDb
 from agno.models.google import Gemini
-from agno.os import AgentOS
 from agno.team import Team
 from agno.tools.duckduckgo import DuckDuckGoTools
 from agno.tools.yfinance import YFinanceTools
@@ -17,7 +16,6 @@ if not google_api_key:
 model = Gemini(
     id="gemini-3-pro-preview",
     api_key=google_api_key,
-
 )
 web_agent = Agent(
     name="Web Agent",
@@ -33,11 +31,13 @@ finance_agent = Agent(
     name="Finance Agent",
     role="Get financial data",
     model=model,
-    tools=[YFinanceTools(
-        # stock_price=True,
-        # analyst_recommendations=True,
-        # company_info=True, company_news=True
-    )],
+    tools=[
+        YFinanceTools(
+            # stock_price=True,
+            # analyst_recommendations=True,
+            # company_info=True, company_news=True
+        )
+    ],
     instructions=["Always use tables to display data"],
     db=db,
     add_history_to_context=True,
@@ -49,8 +49,8 @@ agent_team = Team(
     model=model,
     members=[web_agent, finance_agent],
     debug_mode=True,
-    reasoning=True,        # Enables the internal 'thinking' steps
-    stream=True,           # Tells the server to push data as it's generated
+    reasoning=True,  # Enables the internal 'thinking' steps
+    stream=True,  # Tells the server to push data as it's generated
     markdown=True,
 )
 
@@ -66,4 +66,7 @@ Can you get the detail of CEO buying/selling stock within 3 months, 1 month, 1 w
 other than CEO, can you get the same info of insider transation for the same time ranges.
 can you get the selling stocks percentage too?
     """
-    agent_team.run(query, stream=False,)
+    agent_team.run(
+        query,
+        stream=False,
+    )
