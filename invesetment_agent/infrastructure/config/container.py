@@ -92,18 +92,34 @@ class Application:
         if not google_api_key:
             raise RuntimeError("GOOGLE_API_KEY not set in environment. Please set it (e.g., in .env).")
 
-        model = Gemini(
-            id="gemini-3-flash-preview",
-            api_key=google_api_key,
+        # RECOMMENDATIONS for Model Selection:
+        # 1. Team Leader: Needs high reasoning for orchestration. Use Gemini Pro.
+        # 2. Finance Agent: Data heavy, but structured. Gemini Flash is sufficient.
+        # 3. News Sentiment Agent: Search and summarize. Gemini Flash is sufficient.
+        # 4. Styler Agent: Formatting and analogies. Gemini Flash is sufficient.
 
+        # For this implementation, we'll use:
+        # - gemini-pro-latest for the Team Leader (Orchestrator) - High reasoning
+        # - gemini-2.0-flash for all sub-agents - High speed, low cost, excellent performance
+
+        leader_model = Gemini(
+            id="gemini-pro-latest",
+            api_key=google_api_key,
         )
 
+        sub_agent_model = Gemini(
+            id="gemini-2.0-flash",
+            api_key=google_api_key,
+        )
 
-        team: AgentService = AgnoFinancialTeam(model=model,
-                          agno_agent_services=[
-                              AgnoFinancialAgent(model=model),
-                              AgnoStylerAgent(model=model),
-                              AgnoNewsSentimentAgent(model=model)])
+        team: AgentService = AgnoFinancialTeam(
+            model=leader_model,
+            agno_agent_services=[
+                AgnoFinancialAgent(model=sub_agent_model),
+                AgnoStylerAgent(model=sub_agent_model),
+                AgnoNewsSentimentAgent(model=sub_agent_model)
+            ]
+        )
         return team
 
     @staticmethod
