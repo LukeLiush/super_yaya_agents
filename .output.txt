@@ -1,1065 +1,1416 @@
-diff --git a/Dockerfile b/Dockerfile
-index 72f0faf..2e1c12c 100644
---- a/Dockerfile
-+++ b/Dockerfile
-@@ -25,2 +24,0 @@ COPY . .
--ENV PATH="$APP_HOME/.venv/bin:$PATH"
--
+On branch main
+Your branch is up to date with 'origin/main'.
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+        new file:   Makefile
+        modified:   invesetment_agent/application/dtos/commons.py
+        modified:   invesetment_agent/application/dtos/stock_summarization_dtos.py
+        modified:   invesetment_agent/application/exceptions.py
+        modified:   invesetment_agent/application/external_service/agno_tool.py
+        modified:   invesetment_agent/application/external_service/sec_tools.py
+        modified:   invesetment_agent/application/port/ai_agent_service.py
+        modified:   invesetment_agent/application/usecases/ticker_summarization_usecase.py
+        modified:   invesetment_agent/infrastructure/adapter/agno_agent.py
+        modified:   invesetment_agent/infrastructure/adapter/agno_financial_team/__init__.py
+        modified:   invesetment_agent/infrastructure/adapter/agno_financial_team/agno_agent.py
+        modified:   invesetment_agent/infrastructure/adapter/agno_financial_team/financial_agent.py
+        modified:   invesetment_agent/infrastructure/adapter/agno_financial_team/financial_team.py
+        modified:   invesetment_agent/infrastructure/adapter/agno_financial_team/news_sentiment_agent.py
+        modified:   invesetment_agent/infrastructure/adapter/agno_financial_team/styler_agent.py
+        modified:   invesetment_agent/infrastructure/adapter/agno_financial_team/utils.py
+        modified:   invesetment_agent/infrastructure/cli/app.py
+        modified:   invesetment_agent/infrastructure/config/container.py
+        modified:   invesetment_agent/infrastructure/slack/app.py
+        modified:   invesetment_agent/infrastructure/utils.py
+        modified:   invesetment_agent/infrastructure/web/app.py
+        modified:   invesetment_agent/infrastructure/web/app2.py
+        modified:   invesetment_agent/infrastructure/web/financial_agent_team_app.py
+        modified:   pyproject.toml
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   .output.txt
+        modified:   invesetment_agent/infrastructure/cli/playground/finance_agent_team.py
+        modified:   main.py
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        .github/workflows/lint.yml
+        .idea/
+        .python-version
+        .vscode/
+        invesetment_agent/infrastructure/cli/playground/insider_main.py
+        uv.lock
+diff --git a/Makefile b/Makefile
+new file mode 100644
+index 0000000..3cdec6a
+--- /dev/null
++++ b/Makefile
+@@ -0,0 +1,16 @@
++.PHONY: lint format check clean install
++
++install:
++       uv sync
++
++lint:
++       uv run ruff check .
++
++format:
++       uv run ruff format .
++       uv run ruff check --fix .
++
++check:
++       uv run mypy .
++
++all: format lint check
+diff --git a/invesetment_agent/application/dtos/commons.py b/invesetment_agent/application/dtos/commons.py
+index 484288b..0ba1a9d 100644
+--- a/invesetment_agent/application/dtos/commons.py
++++ b/invesetment_agent/application/dtos/commons.py
+@@ -5,9 +5,10 @@ These types provide a consistent way to handle success and failure cases across
+
+ from dataclasses import dataclass
+ from enum import Enum
+-from typing import Any, Optional, Generic, TypeVar, Self
++from typing import Any, Generic, Self, TypeVar
++
++T = TypeVar("T")  # Success type
+
+-T = TypeVar('T')  # Success type
+
+ class ErrorCode(Enum):
+     """Enumeration of possible error codes in the application layer."""
+@@ -36,7 +37,7 @@ class Error:
+
+     code: ErrorCode
+     message: str
+-    details: Optional[dict[str, Any]] = None
++    details: dict[str, Any] | None = None
+
+     @classmethod
+     def not_found(cls, entity: str, entity_id: str) -> Self:
+@@ -79,12 +80,11 @@ class Result(Generic[T]):
+         failure: Class method to create a failed result.
+     """
+
+-    _value: Optional[T] = None
+-    _error: Optional[Error] = None
++    _value: T | None = None
++    _error: Error | None = None
+
+     def __post_init__(self):
+-        if (self._value is None and self._error is None) or \
+-           (self._value is not None and self._error is not None):
++        if (self._value is None and self._error is None) or (self._value is not None and self._error is not None):
+             raise ValueError("Either value or error must be provided, but not both")
+
+     @property
+@@ -107,11 +107,11 @@ class Result(Generic[T]):
+         return self._error
+
+     @classmethod
+-    def success(cls, value: T) -> 'Result[T]':
++    def success(cls, value: T) -> "Result[T]":
+         """Create a successful result with the given value."""
+         return cls(_value=value)
+
+     @classmethod
+-    def failure(cls, error: Error) -> 'Result[T]':
++    def failure(cls, error: Error) -> "Result[T]":
+         """Create a failed result with the given error."""
+-        return cls(_error=error)
+\ No newline at end of file
++        return cls(_error=error)
 diff --git a/invesetment_agent/application/dtos/stock_summarization_dtos.py b/invesetment_agent/application/dtos/stock_summarization_dtos.py
-index 3bba432..223863a 100644
+index 855d1ec..d362e07 100644
 --- a/invesetment_agent/application/dtos/stock_summarization_dtos.py
 +++ b/invesetment_agent/application/dtos/stock_summarization_dtos.py
-@@ -8,2 +8,2 @@ import yfinance
--class SingleStockSummarizationRequest:
--    stock: str
-+class SingleEquitySummarizationRequest:
-+    equity: str
-@@ -13 +13 @@ class SingleStockSummarizationRequest:
--        return f"make a detailed report for an investment trying to invest for {self.stock} stock"
-+        return f"Analyze the {self.equity} equity and provide a detailed investment report."
-@@ -31 +31 @@ class SingleStockSummarizationRequest:
--                    - Clear, concise, and operational.
-+                    - operational.
-@@ -40,6 +40 @@ class SingleStockSummarizationRequest:
--        return [
--            "provide: 5-year, 1-year and 30-day high/low points in a table, \n"
--            "provide: 2-month trend prediction, \n"
--            "provide: buying time recommendation for current month vs next month, \n"
--            "provide: daily monitoring suggestions.\n",
--            slack_instruction]
-+        return []
-@@ -49 +44 @@ class SingleStockSummarizationRequest:
--            ticker = yfinance.Ticker(self.stock)
-+            ticker = yfinance.Ticker(self.equity)
-@@ -57,2 +52,2 @@ class SingleStockSummarizationRequest:
--class MultiStockSummarizationRequest:
--    single_requests: List[SingleStockSummarizationRequest] = field(default_factory=lambda: [])
-+class MultiEquitySummarizationRequest:
-+    single_requests: List[SingleEquitySummarizationRequest] = field(default_factory=lambda: [])
+@@ -1,5 +1,4 @@
+ from dataclasses import dataclass, field
+-from typing import List
+
+ import yfinance
+
+@@ -12,19 +11,15 @@ class SingleTickerSummarizationRequest:
+     def query(self) -> str:
+         return f"Analyze the {self.ticker} and provide a detailed investment report."
+
+-    @property
+-    def instructions(self):
+-        return []
+-
+     def is_valid(self) -> bool:
+         try:
+             ticker = yfinance.Ticker(self.ticker)
+             info = ticker.info
+-            return 'symbol' in info or 'shortName' in info
+-        except:
++            return "symbol" in info or "shortName" in info
++        except Exception:
+             return False
+
+
+ @dataclass(frozen=True)
+ class MultiTickerSummarizationRequest:
+-    single_requests: List[SingleTickerSummarizationRequest] = field(default_factory=lambda: [])
++    single_requests: list[SingleTickerSummarizationRequest] = field(default_factory=lambda: [])
 diff --git a/invesetment_agent/application/exceptions.py b/invesetment_agent/application/exceptions.py
-index d52641d..62669e7 100644
+index 62669e7..2e4d378 100644
 --- a/invesetment_agent/application/exceptions.py
 +++ b/invesetment_agent/application/exceptions.py
-@@ -6,2 +6,2 @@ class AgentExecutionError(Exception):
--    def __init__(self, message: str, agent_name: str = None, cause: Exception = None):
--        self.agent_name = agent_name
-+    def __init__(self, message: str, name: str = None, cause: Exception = None):
-+        self.agent_name = name
-@@ -9 +9 @@ class AgentExecutionError(Exception):
--        base_message = f"[{agent_name}] {message}" if agent_name else message
-+        base_message = f"[{name}] {message}" if name else message
-diff --git a/invesetment_agent/application/port/ai_agent_service.py b/invesetment_agent/application/port/ai_agent_service.py
-index 780f91c..7977b80 100644
---- a/invesetment_agent/application/port/ai_agent_service.py
-+++ b/invesetment_agent/application/port/ai_agent_service.py
-@@ -5 +5 @@ from typing import List
--class SingleAgentService(ABC):
-+class AgentService(ABC):
-diff --git a/invesetment_agent/application/usecases/single_stock_summarization_usecase.py b/invesetment_agent/application/usecases/equity_summarization_usecase.py
-similarity index 71%
-rename from invesetment_agent/application/usecases/single_stock_summarization_usecase.py
-rename to invesetment_agent/application/usecases/equity_summarization_usecase.py
-index b082aad..272d4a0 100644
---- a/invesetment_agent/application/usecases/single_stock_summarization_usecase.py
-+++ b/invesetment_agent/application/usecases/equity_summarization_usecase.py
-@@ -4 +4 @@ from invesetment_agent.application.dtos.commons import Result, Error, ErrorCode
--from invesetment_agent.application.dtos.stock_summarization_dtos import MultiStockSummarizationRequest
-+from invesetment_agent.application.dtos.stock_summarization_dtos import MultiEquitySummarizationRequest
-@@ -6 +6 @@ from invesetment_agent.application.exceptions import MultiAgentExecutionError
--from invesetment_agent.application.port.ai_agent_service import SingleAgentService
-+from invesetment_agent.application.port.ai_agent_service import AgentService
-@@ -9 +9 @@ from invesetment_agent.application.port.ai_agent_service import SingleAgentServi
--class StockSummarizationUseCase:
-+class EquitySummarizationUseCase:
-@@ -11 +11 @@ class StockSummarizationUseCase:
--    def __init__(self, agent_service: SingleAgentService):
-+    def __init__(self, agent_service: AgentService):
-@@ -14 +14 @@ class StockSummarizationUseCase:
--    def execute(self, multi_stock_summarization_request: MultiStockSummarizationRequest) -> Result:
-+    def execute(self, multi_equity_summarization_request: MultiEquitySummarizationRequest) -> Result:
-@@ -16 +16 @@ class StockSummarizationUseCase:
--        for single_request in multi_stock_summarization_request.single_requests:
-+        for single_request in multi_equity_summarization_request.single_requests:
-@@ -19 +19 @@ class StockSummarizationUseCase:
--                    query=f"make a detailed report for an investment trying to invest for {single_request.stock} stock",
-+                    query=f"make a detailed report for an investment trying to invest for {single_request.equity} equity",
-diff --git a/invesetment_agent/application/usecases/multi_stock_summarization_usecase.py b/invesetment_agent/application/usecases/multi_stock_summarization_usecase.py
-deleted file mode 100644
-index 8986c44..0000000
---- a/invesetment_agent/application/usecases/multi_stock_summarization_usecase.py
-+++ /dev/null
-@@ -1,32 +0,0 @@
+@@ -1,21 +1,17 @@
 -from typing import List
 -
--from invesetment_agent.application.dtos.commons import Result
--from invesetment_agent.application.dtos.stock_summarization_dtos import MultiStockSummarizationRequest
--from invesetment_agent.application.port.ai_agent_service import SingleAgentService
 -
+ class AgentExecutionError(Exception):
 -
--class StockSummarizationUseCase:
+-    def __init__(self, message: str, name: str = None, cause: Exception = None):
++    def __init__(self, message: str, name: str | None = None, cause: Exception | None = None):
+         self.agent_name = name
+         self.cause = cause
+         base_message = f"[{name}] {message}" if name else message
+         if cause:
+-            base_message += f" | Caused by: {repr(cause)}"
++            base_message += f" | Caused by: {cause!r}"
+         super().__init__(base_message)
+
+
+ class MultiAgentExecutionError(Exception):
+     """Exception raised when multiple agents in a sequence fail."""
+
+-    def __init__(self, errors: List[AgentExecutionError]):
++    def __init__(self, errors: list[AgentExecutionError]):
+         self.errors = errors
+         # Basic summary message
+         self.message = f"{len(errors)} agents failed to provide an answer."
+@@ -23,5 +19,5 @@ class MultiAgentExecutionError(Exception):
+
+     def __str__(self):
+         # Create a detailed string showing each specific error
+-        detail_lines = [f"  - {str(e)}" for e in self.errors]
++        detail_lines = [f"  - {e!s}" for e in self.errors]
+         return f"{self.message}\nDetailed Failures:\n" + "\n".join(detail_lines)
+diff --git a/invesetment_agent/application/external_service/agno_tool.py b/invesetment_agent/application/external_service/agno_tool.py
+index fc0a022..0f89035 100644
+--- a/invesetment_agent/application/external_service/agno_tool.py
++++ b/invesetment_agent/application/external_service/agno_tool.py
+@@ -1,13 +1,12 @@
+ import os
+
+-from agno.agent import Agent
+ from slack_sdk import WebClient
+ from slack_sdk.errors import SlackApiError
+-from agno.tools import tool
+
+ SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
+ slack_client = WebClient(token="SLACK_BOT_TOKEN")
+
++
+ def post_to_slack(channel: str, text: str) -> str:
+     """Post a message to a Slack channel.
+
+@@ -35,4 +34,4 @@ def post_to_slack(channel: str, text: str) -> str:
+
+
+ if __name__ == "__main__":
+-    post_to_slack(channel="#super-yaya", text="World")
+\ No newline at end of file
++    post_to_slack(channel="#super-yaya", text="World")
+diff --git a/invesetment_agent/application/external_service/sec_tools.py b/invesetment_agent/application/external_service/sec_tools.py
+index 07da17e..8722e2d 100644
+--- a/invesetment_agent/application/external_service/sec_tools.py
++++ b/invesetment_agent/application/external_service/sec_tools.py
+@@ -1,8 +1,8 @@
+ import os
+ import xml.etree.ElementTree as ET
+-from typing import List, Dict
++from typing import Any
+
+-import requests
++import requests  # type: ignore
+ from agno.tools import tool
+
+ # SEC requires a descriptive User-Agent with an email
+@@ -41,10 +41,14 @@ def build_insider_table(ticker: str) -> str:
+     return _build_insider_table(ticker)
+
+
+-def _get_headers():
++SEC_USER_AGENT = os.environ.get("SEC_USER_AGENT", "Example App contact@example.com")
++
++
++def _get_headers() -> dict[str, str]:
+     return {
+         "User-Agent": SEC_USER_AGENT,
+-        "Accept-Encoding": "gzip, deflate", }
++        "Accept-Encoding": "gzip, deflate",
++    }
+
+
+ def _resolve_cik(ticker: str) -> str:
+@@ -64,7 +68,7 @@ def _resolve_cik(ticker: str) -> str:
+     raise ValueError(f"CIK not found for ticker: {ticker}")
+
+
+-def _fetch_sec_submissions(cik: str) -> dict:
++def _fetch_sec_submissions(cik: str) -> dict[Any, Any]:
+     """
+     Fetch SEC submission JSON for a given CIK.
+     """
+@@ -73,7 +77,7 @@ def _fetch_sec_submissions(cik: str) -> dict:
+     url = f"https://data.sec.gov/submissions/CIK{cik}.json"
+     resp = requests.get(url, headers=_get_headers())
+     resp.raise_for_status()
+-    return resp.json()
++    return dict(resp.json())
+
+
+ def _fetch_latest_filing_link(ticker: str, form_type: str = "10-K") -> str:
+@@ -88,7 +92,7 @@ def _fetch_latest_filing_link(ticker: str, form_type: str = "10-K") -> str:
+     acc_nums = filings.get("accessionNumber", [])
+     primary_docs = filings.get("primaryDocument", [])
+
+-    for f, acc, doc in zip(forms, acc_nums, primary_docs):
++    for f, acc, doc in zip(forms, acc_nums, primary_docs, strict=False):
+         if f.upper() == form_type.upper():
+             acc_clean = acc.replace("-", "")
+             return f"https://www.sec.gov/Archives/edgar/data/{int(cik)}/{acc_clean}/{doc}"
+@@ -96,7 +100,7 @@ def _fetch_latest_filing_link(ticker: str, form_type: str = "10-K") -> str:
+     return f"No recent {form_type} filing found for {ticker}."
+
+
+-def _fetch_form4_transactions(ticker: str, limit: int = 5) -> List[Dict]:
++def _fetch_form4_transactions(ticker: str, limit: int = 5) -> list[dict]:
+     """
+     Fetch and parse recent Form 4 insider transactions for a company.
+     """
+@@ -110,14 +114,14 @@ def _fetch_form4_transactions(ticker: str, limit: int = 5) -> List[Dict]:
+     filing_dates = filings.get("filingDate", [])
+
+     records = []
+-    for form, acc, doc, date in zip(forms, accession_numbers, primary_documents, filing_dates):
++    for form, acc, doc, date in zip(forms, accession_numbers, primary_documents, filing_dates, strict=False):
+         if form != "4":
+             continue
+
+         acc_clean = acc.replace("-", "")
+         # The primaryDocument in JSON might have a prefix like xslF345X05/
+         # We need the raw XML which is usually just the file name at the end
+-        xml_name = doc.split('/')[-1]
++        xml_name = doc.split("/")[-1]
+         url = f"https://www.sec.gov/Archives/edgar/data/{int(cik)}/{acc_clean}/{xml_name}"
+
+         try:
+@@ -135,7 +139,7 @@ def _fetch_form4_transactions(ticker: str, limit: int = 5) -> List[Dict]:
+             for tx in root.findall(".//nonDerivativeTransaction"):
+                 security_title = tx.find(".//securityTitle/value")
+                 tx_date = tx.find(".//transactionDate/value")
+-                tx_coding = tx.find(".//transactionCoding/transactionCode")
++                tx.find(".//transactionCoding/transactionCode")
+                 tx_amounts = tx.find(".//transactionAmounts")
+
+                 if tx_amounts is not None:
+@@ -143,16 +147,18 @@ def _fetch_form4_transactions(ticker: str, limit: int = 5) -> List[Dict]:
+                     price = tx_amounts.find(".//transactionPricePerShare/value")
+                     acquired_disposed = tx_amounts.find(".//transactionAcquiredDisposedCode/value")
+
+-                    action = "Buy" if acquired_disposed is not None and acquired_disposed.text == 'A' else "Sell"
++                    action = "Buy" if acquired_disposed is not None and acquired_disposed.text == "A" else "Sell"
+
+-                    records.append({
+-                        "date": tx_date.text if tx_date is not None else date,
+-                        "name": owner_name,
+-                        "action": action,
+-                        "price": price.text if price is not None else "0",
+-                        "shares": shares.text if shares is not None else "0",
+-                        "security": security_title.text if security_title is not None else "Security"
+-                    })
++                    records.append(
++                        {
++                            "date": tx_date.text if tx_date is not None else date,
++                            "name": owner_name,
++                            "action": action,
++                            "price": price.text if price is not None else "0",
++                            "shares": shares.text if shares is not None else "0",
++                            "security": security_title.text if security_title is not None else "Security",
++                        }
++                    )
+
+                 if len(records) >= limit:
+                     break
+@@ -167,7 +173,7 @@ def _fetch_form4_transactions(ticker: str, limit: int = 5) -> List[Dict]:
+
+
+ @tool()
+-def fetch_form4_transactions(ticker: str, limit: int = 5) -> List[Dict]:
++def fetch_form4_transactions(ticker: str, limit: int = 5) -> list[dict]:
+     """
+     Fetch and parse recent Form 4 insider transactions for a company.
+     Returns a list of transaction dictionaries with Date, Insider Name, Action, Price, and Shares.
+@@ -190,7 +196,7 @@ def _build_insider_table(ticker: str) -> str:
+         lines.append("-----------|-----------------------|--------|-----------|---------")
+
+         for tx in transactions:
+-            name = (tx.get('name', 'Unknown')[:21]).ljust(21)
++            name = (tx.get("name", "Unknown")[:21]).ljust(21)
+             lines.append(
+                 f"{tx.get('date', '----')} | "
+                 f"{name} | "
+diff --git a/invesetment_agent/application/port/ai_agent_service.py b/invesetment_agent/application/port/ai_agent_service.py
+index 7977b80..344de4a 100644
+--- a/invesetment_agent/application/port/ai_agent_service.py
++++ b/invesetment_agent/application/port/ai_agent_service.py
+@@ -1,9 +1,7 @@
+ from abc import ABC, abstractmethod
+-from typing import List
+
+
+ class AgentService(ABC):
 -
--    def __init__(self, research_agent: SingleAgentService, financial_agent: SingleAgentService):
--        self.research_agent = research_agent
--        self.financial_agent = financial_agent
+     @abstractmethod
+-    def get_answer(self, query: str, instructions: List[str]) -> str:
++    def get_answer(self, query: str) -> str:
+         raise NotImplementedError("Subclasses must implement get_answer method")
+diff --git a/invesetment_agent/application/usecases/ticker_summarization_usecase.py b/invesetment_agent/application/usecases/ticker_summarization_usecase.py
+index 4863d54..06759cc 100644
+--- a/invesetment_agent/application/usecases/ticker_summarization_usecase.py
++++ b/invesetment_agent/application/usecases/ticker_summarization_usecase.py
+@@ -1,26 +1,26 @@
+-from typing import List
 -
--    def execute(self, multi_stock_summarization_request: MultiStockSummarizationRequest) -> Result:
+-from invesetment_agent.application.dtos.commons import Result, Error, ErrorCode
++from invesetment_agent.application.dtos.commons import Error, ErrorCode, Result
+ from invesetment_agent.application.dtos.stock_summarization_dtos import MultiTickerSummarizationRequest
+ from invesetment_agent.application.exceptions import MultiAgentExecutionError
+ from invesetment_agent.application.port.ai_agent_service import AgentService
+
+
+ class EquitySummarizationUseCase:
+-
+     def __init__(self, agent_service: AgentService):
+         self.agent_service = agent_service
+
+     def execute(self, multi_ticker_summarization_request: MultiTickerSummarizationRequest) -> Result:
 -        answers: List[str] = []
--        #
--        # web_agent = Agent(
--        #     name="Web Agent",
--        #     role="Search the web for information",
--        #     model=OpenAIChat(id="gpt-4o"),
--        #     tools=[DuckDuckGoTools()],
--        #     db=db,
--        #     add_history_to_context=True,
--        #     markdown=True,
--        # )
--
--        for single_request in multi_stock_summarization_request.single_requests:
--            answer: str = self.research_agent.get_answer(
--                query=f"make a detailed report for an investment trying to invest for {single_request.stock} stock",
--                instructions=single_request.instructions)
--            answers.append(answer)
--        return Result.success("\n".join(answers))
++        answers: list[str] = []
+         for single_request in multi_ticker_summarization_request.single_requests:
+             try:
+                 answer: str = self.agent_service.get_answer(
+                     query=f"Analyze the ticker {single_request.ticker} to provide a detailed investment report",
+-                    instructions=single_request.instructions)
++                )
+                 answers.append(answer)
+             except MultiAgentExecutionError as e:
+-                error: Error = Error(message=e.message, code=ErrorCode.AGENT_EXECUTION_ERROR,
+-                                     details={err.agent_name: err.__str__() for err in e.errors})
++                error: Error = Error(
++                    message=e.message,
++                    code=ErrorCode.AGENT_EXECUTION_ERROR,
++                    details={err.agent_name or "Unknown": str(err) for err in e.errors},
++                )
+                 return Result.failure(error)
+         return Result.success("\n".join(answers))
 diff --git a/invesetment_agent/infrastructure/adapter/agno_agent.py b/invesetment_agent/infrastructure/adapter/agno_agent.py
-index 104bd6f..d222650 100644
+index d222650..fbc3795 100644
 --- a/invesetment_agent/infrastructure/adapter/agno_agent.py
 +++ b/invesetment_agent/infrastructure/adapter/agno_agent.py
-@@ -11 +11 @@ from invesetment_agent.application.exceptions import AgentExecutionError, MultiA
--from invesetment_agent.application.port.ai_agent_service import SingleAgentService
-+from invesetment_agent.application.port.ai_agent_service import AgentService
-@@ -14 +14 @@ from invesetment_agent.application.port.ai_agent_service import SingleAgentServi
--class FallbackAgnoAgentService(SingleAgentService):
-+class FallbackAgnoAgentService(AgentService):
-@@ -16,2 +16,2 @@ class FallbackAgnoAgentService(SingleAgentService):
--    def __init__(self, agent_services: List[SingleAgentService]):
--        self.agent_services: List[SingleAgentService] = agent_services or []
-+    def __init__(self, agent_services: List[AgentService]):
-+        self.agent_services: List[AgentService] = agent_services or []
-@@ -32 +32 @@ class FallbackAgnoAgentService(SingleAgentService):
--class AgnoAgentService(SingleAgentService):
+@@ -1,69 +1,40 @@
+-from typing import Optional, List, Union
+-
+ from agno.agent import Agent
+ from agno.models.base import Model
+ from agno.run import RunStatus
+ from agno.run.agent import RunOutput
+-from agno.tools.yfinance import YFinanceTools
+-from tenacity import retry_if_exception, stop_after_attempt, wait_exponential, retry
+
+ from invesetment_agent.application.exceptions import AgentExecutionError, MultiAgentExecutionError
+ from invesetment_agent.application.port.ai_agent_service import AgentService
+
+
+-class FallbackAgnoAgentService(AgentService):
 +class FinancialAgnoAgentService(AgentService):
-@@ -34 +34 @@ class AgnoAgentService(SingleAgentService):
--    def __init__(self, model: Model, role: str, description: str):
 +    def __init__(self, model: Model):
-@@ -36,2 +35,0 @@ class AgnoAgentService(SingleAgentService):
--        self.role: str = role
--        self.description: str = description
-@@ -60,2 +58,2 @@ class AgnoAgentService(SingleAgentService):
--            name=self.role,
--            description=self.description,
-+            name="Investment Analyst",
-+            description="Researches stock prices, analyst recommendations, and stock fundamentals.",
-@@ -70 +68 @@ class AgnoAgentService(SingleAgentService):
--            raise AgentExecutionError(message=run.content, agent_name=agent.name, )
-+            raise AgentExecutionError(message=run.content, name=agent.name, )
-diff --git a/invesetment_agent/infrastructure/adapter/agno_financial_agent.py b/invesetment_agent/infrastructure/adapter/agno_financial_agent.py
-new file mode 100644
-index 0000000..5b22596
---- /dev/null
-+++ b/invesetment_agent/infrastructure/adapter/agno_financial_agent.py
-@@ -0,0 +1,152 @@
-+from pathlib import Path
-+from typing import Optional, Union, List
-+
-+from agno.agent import Agent
-+from agno.db import BaseDb
-+from agno.db.base import AsyncBaseDb
-+from agno.models.base import Model
-+from agno.run import RunStatus
-+from agno.run.team import TeamRunOutput
-+from agno.team import Team
-+from agno.tools.yfinance import YFinanceTools
-+import yfinance as yf
-+import json
-+
-+class EnhancedYFinanceTools(YFinanceTools):
-+    def __init__(self, *args, **kwargs):
-+        super().__init__(*args, **kwargs)
-+        self.tools.append(self.get_insider_transactions)
-+
-+    def get_insider_transactions(self, symbol: str) -> str:
-+        """Use this function to get insider transactions for a given stock symbol.
-+
-+        Args:
-+            symbol (str): The stock symbol.
-+
-+        Returns:
-+            str: JSON containing insider transactions summary or error message.
-+        """
-+        try:
-+            from datetime import datetime, timedelta
-+            import pandas as pd
-+            stock = yf.Ticker(symbol, session=self.session)
-+            df = stock.insider_transactions
-+            if df is None or df.empty:
-+                return f"No insider transactions found for {symbol}"
-+
-+            # Ensure 'Start Date' is datetime
-+            df['Start Date'] = pd.to_datetime(df['Start Date'])
-+
-+            import numpy as np
-+            trades = []
-+            # Sort by date descending and take top 10
-+            df = df.sort_values(by='Start Date', ascending=False)
-+
-+            for _, row in df.head(10).iterrows():
-+                trade_type = str(row['Transaction']).lower()
-+                # Simple heuristic: if it's 'Sale', it's a sell. Otherwise often a buy or grant.
-+                # yfinance usually has 'Sale' or 'Purchase'
-+                is_sell = "sale" in trade_type
-+                is_buy = "purchase" in trade_type or "buy" in trade_type
-+
-+                trades.append({
-+                    "Insider": row['Insider'],
-+                    "Position": row['Position'],
-+                    "Date": row['Start Date'].strftime('%Y-%m-%d'),
-+                    "Shares": int(row['Shares']) if not pd.isna(row['Shares']) else 0,
-+                    "Price": float(row['Value'] / row['Shares']) if not pd.isna(row['Value']) and not pd.isna(row['Shares']) and row['Shares'] != 0 else 0.0,
-+                    "Value": float(row['Value']) if not pd.isna(row['Value']) else 0.0,
-+                    "Type": row['Transaction'],
-+                    "Action": "Sell" if is_sell else "Buy" if is_buy else "Other",
-+                    "Details": row['Text'] if not pd.isna(row['Text']) else ""
-+                })
-+
-+            return json.dumps({"trades": trades}, indent=2)
-+        except Exception as e:
-+            return f"Error fetching insider transactions for {symbol}: {e}"
-+
-+from invesetment_agent.application.exceptions import AgentExecutionError
-+from invesetment_agent.application.port.ai_agent_service import AgentService
-+
-+
-+# --- 1. LOAD INSTRUCTION FILES ---
-+def load_instruction(path: Path):
-+    if path.exists():
-+        return path.read_text(encoding="utf-8")
-+    return f"Error: {path} not found."
-+
-+
-+current_file_dir = Path(__file__).resolve().parent
-+instructions_path = current_file_dir / "instructions"
-+finance_rules = load_instruction(instructions_path / "finance_agent_instructions.md")
-+leader_rules = load_instruction(instructions_path / "team_leader_instructions.md")
-+stock_template = load_instruction(instructions_path / "styler_stock_instructions.md")
-+equity_fund_template = load_instruction(instructions_path / "styler_equity_fund_instructions.md")
-+bond_etf_template = load_instruction(instructions_path / "styler_bond_etf_instructions.md")
-+bond_fund_template = load_instruction(instructions_path / "styler_bond_fund_instructions.md")
-+
-+
-+class AgnoFinancialAgent(AgentService):
-+    def __init__(self,
-+                 style_model: Model,
-+                 finance_model: Model,
-+                 team_model: Model,
-+                 db: Optional[Union[BaseDb, AsyncBaseDb]] = None):
-+        self.style_model: Model = style_model
-+        self.finance_model: Model = finance_model
-+        self.team_model: Model = team_model
-+        self.db: Optional[Union[BaseDb, AsyncBaseDb]] = db
-+
-+    @classmethod
-+    def from_single_model(cls,
-+                          model: Model,
-+                          db: Optional[Union[BaseDb, AsyncBaseDb]] = None) -> "FinancialAgnoTeamService":
-+        return cls(style_model=model,
-+                   finance_model=model,
-+                   team_model=model,
-+                   db=db)
-+
-+    def get_answer(self, query: str, instructions: List[str]) -> str:
-+        # Tools agent to fetch the raw data
-+        finance_agent = Agent(
-+            name="Finance_Agent",
-+            role="Data Provider",
-+            tools=[EnhancedYFinanceTools()],
-+            model=self.finance_model,
-+            instructions=[finance_rules],
-+            debug_mode=True,
++        self.agent = Agent(
++            name="Financial_Agent",
++            model=model,
++            instructions=["Provide financial analysis based on the user's query."],
 +        )
 +
-+        styler_agent = Agent(
-+            name="Slack_Styler",
-+            role="Designer",
-+            description="Transforms data into Slack-formatted reports using analogies.",
-+            model=self.style_model,
-+            instructions=["Wait for the Team Leader to provide the specific MD template based on asset type."]
-+        )
-+
-+        team_leader = Team(
-+            name="Investment_Team_Leader",
-+            members=[finance_agent, styler_agent],
-+            model=self.team_model,
-+            instructions=
-+            [
-+                "--- DYNAMIC ROUTING LOGIC ---",
-+                "Step 1: Use Finance_Agent to determine the ticker type. Supported types: Stock, Equity Fund, Mutual Fund, Index Fund, Bond ETF, Bond Fund.",
-+                "Step 1a: Validate the ticker type. If the detected type is NOT one of the supported types, raise a warning: Ticker type unknown. Please verify input.",
-+                f"Step 2: IF STOCK -> Instruct Styler to use THIS template: \n{stock_template}",
-+                f"Step 3: IF EQUITY FUND, MUTUAL FUND, or INDEX FUND -> Instruct Styler to use THIS template: \n{equity_fund_template}",
-+                f"Step 4: IF BOND ETF -> Instruct Styler to use THIS template: \n{bond_etf_template}",
-+                f"Step 5: IF BOND FUND -> Instruct Styler to use THIS template: \n{bond_fund_template}",
-+                "Step 6: Audit the output. Ensure single-asterisk bolding (*Text*) and ASCII tables in ``` blocks.",
-+            ] + [leader_rules],
-+            debug_mode=True,
-+            markdown=False,
-+        )
-+        run: TeamRunOutput = team_leader.run(
-+            query,
-+            stream=False,
-+        )
++    def get_answer(self, query: str) -> str:
++        run: RunOutput = self.agent.run(query, stream=False)
++        content = run.content or ""
 +        if run.status == RunStatus.error:
-+            raise AgentExecutionError(message=run.content, name=team_leader.name, )
-+        return run.content
-diff --git a/invesetment_agent/infrastructure/adapter/instructions/finance_agent_instructions.md b/invesetment_agent/infrastructure/adapter/instructions/finance_agent_instructions.md
-new file mode 100644
-index 0000000..e45eb03
---- /dev/null
-+++ b/invesetment_agent/infrastructure/adapter/instructions/finance_agent_instructions.md
-@@ -0,0 +1,30 @@
-+# ROLE
-+You are a Senior Financial Data Specialist. Your mission is to provide accurate, raw data to the team. You do not format reports; you only provide the facts.
-+
-+# CORE OPERATING PROCEDURES
-+1. **Identify Asset Type**: Immediately determine the ticker type. Supported types: Stock, Equity Fund, Mutual Fund, Index Fund, Bond ETF, Bond Fund.
-+2. **Data Extraction Requirements**:
-+
-+   ### IF STOCK:
-+   Retrieve and provide:
-+   - Price History: Current Price and Highs/Lows for 7-Day, 30-Day, 3-Month and 1 year windows.
-+   - Fundamental Metrics: P/E Ratio (Trailing & Forward), Total Debt, Free Cash Flow (FCF).
-+   - Growth: Earnings Quarterly Growth (YoY).
-+   - Insider Trading: Fetch insider transactions and provide a detailed list of the most recent trades including Insider Name, Action (Buy/Sell), Price, Shares, and Date.
-+
-+   ### IF EQUITY FUND, MUTUAL FUND, or INDEX FUND (EQUITY-BASED):
-+   Retrieve and provide:
-+   - Price History: Current Price and Highs/Lows for 7-Day, 30-Day, 3-Month and 1 year windows.
-+   - Fund Metrics: Expense Ratio, YTD Return.
-+   - Portfolio: Top 5 Holdings, Sector Exposure (Tech, Health, etc.).
-+
-+   ### IF BOND ETF or BOND FUND:
-+   Retrieve and provide:
-+   - Current Price and Price History (7D, 30D, 3M, 1Y).
-+   - Yield: 30-Day SEC Yield or Dividend Yield.
-+   - Risk Metrics: Average Duration (Sensitivity to interest rates).
-+   - Quality: Credit Quality or holdings summary (e.g., Government vs. Corporate).
-+
-+# ERROR HANDLING
-+- If a specific metric (like Free Cash Flow) is unavailable for a company, return "Data Unavailable" rather than omitting the field.
-+- If the ticker is invalid, provide a clear error message: "Ticker [SYMBOL] not found."
-\ No newline at end of file
-diff --git a/invesetment_agent/infrastructure/adapter/instructions/styler_bond_etf_instructions.md b/invesetment_agent/infrastructure/adapter/instructions/styler_bond_etf_instructions.md
-new file mode 100644
-index 0000000..31d90ff
---- /dev/null
-+++ b/invesetment_agent/infrastructure/adapter/instructions/styler_bond_etf_instructions.md
-@@ -0,0 +1,85 @@
-+# ROLE
-+
-+You are a Financial Design Specialist. Your goal is to make Bond ETF data readable for beginners by focusing on income,
-+safety, and stability compared to the stock market.
-+
-+# SLACK FORMATTING RULES (CRITICAL)
-+
-+- *BOLD*: Use single asterisks (*Text*). NEVER use double asterisks (**Text**).
-+- *TABLES*: Use a multiline code block (```) with an ASCII-style table.
-+- *EMOJIS*: Use :bank:, :hourglass_flowing_sand:, and :shield:.
-+
-+# REPORT STRUCTURE
-+
-+📡 *Daily Bond ETF Intelligence: [FUND NAME] ($[TICKER])*
-+🚀 *Quick View Summary**: Current price/yield vs. interest rate environment.
-+✅ Summary (Risks, Market Factors, and Growth / Returns)
-+* Risks / Challenges: Interest rate changes; credit risk; liquidity risk (lower for major ETFs); tracking error.
-+* Market Factors / Competitors: Competes with other bond ETFs (e.g., AGG, BND); affected by Fed policy and market liquidity.
-+* Future Growth / Returns Drivers: Yield income; diversification; potential price appreciation if rates decline.
-+* Investor Takeaway: Liquid way to gain bond exposure; check current yield and duration.
-+
-+*1. 📉 Price Extremes*
-+
-+```text
-+Window      | High ($)   | Low ($)
-+------------|------------|------------
-+Current     | [Price]    | [Price]
-+7-Day       | [Price]    | [Price]
-+30-Day      | [Price]    | [Price]
-+3-Months    | [Price]    | [Price]
-+1-Year      | [Price]    | [Price]
-+```
-+
-+*2. 💵 The Paycheck:*
-+30-Day SEC Yield (Analogy: Annual Salary) • Meaning: The Yield is your "Annual Salary." It’s the interest the bond pays you for lending them your money. For every $1,000 you "hire" (invest), a 4% yield pays you $40 a year in steady cash.
-+
-+*3. ⏳ The Sensitivity:*
-+Average Duration (Analogy: The Seesaw) • Meaning: Duration measures how sensitive the bond is to interest rates. Think of a "Seesaw": if interest rates go UP by 1%, the bond's price will go DOWN by roughly the duration (e.g., 5%).
-+
-+*4. 🛡️ Safety Net: Credit Quality*
-+(Analogy: The Trust Level) • Meaning: This is the "Trust Level" of the people you are lending money to. Government bonds are the highest trust (very safe), while "High Yield" or "Junk" bonds are lower trust but pay more salary.
-+
-+*5. 📅 Optimal Entry Strategy*
-+(Next Month Forecast) • Verdict: Recommend a strategy for early 2026 based on the Fed's interest rate path.
-+
-+---
-+
-+# EXAMPLE REPORT
-+
-+📡 *Daily Bond ETF Intelligence: Vanguard Total Bond Market ETF ($BND)*
-+🚀 *Quick View Summary*: Neutral – Broad bond market exposure; current price $75.2, may move with interest rates.
-+✅ Summary (Risks, Market Factors, and Growth / Returns)
-+* Risks / Challenges: Bond prices can fall if interest rates rise; inflation may reduce real returns; corporate bonds carry credit risk; longer-duration bonds are more sensitive to rate changes.
-+* Market Factors / Competitors: Competes with other broad bond funds and ETFs; performance influenced by Federal Reserve policy, economic growth, and overall bond market trends.
-+* Future Growth / Returns Drivers: Provides stable income through interest payments; reinvested coupons can grow over time; potential gains if interest rates decline; diversification helps reduce portfolio risk.
-+* Investor Takeaway: Suitable for long-term investors seeking income and stability; expect short-term price fluctuations due to rate changes; check current yields to evaluate expected returns.
-+
-+*1. 📉 Price Extremes*
-+
-+```text
-+Window      | High ($)   | Low ($)
-+------------|------------|------------
-+Current     | 75.20      | 75.20
-+7-Day       | 76.10      | 74.80
-+30-Day      | 77.00      | 74.00
-+3-Months    | 78.50      | 72.50
-+1-Year      | 80.00      | 68.00
-+```
-+
-+*2. 💵 The Paycheck:*
-+30-Day SEC Yield • The Reality: Your "Salary" is 4.1%. In VTSAX, you hope for growth; in BND, you are hired to collect
-+interest. For every $10,000 invested, you get $410/year in steady cash.
-+
-+*3. ⏳ The Sensitivity:*
-+Average Duration • The Seesaw: BND has a 6.2-year duration. Think of it as a medium-length seesaw. If the Fed raises
-+interest rates 1%, your "Seat" (the price) drops 6.2%. It's more stable than long-term bonds, but not a flat floor.
-+
-+*4. 🛡️ Safety Net:*
-+Credit Quality • The Trust Level: While VTSAX depends on companies being "profitable," BND only depends on them being "
-+trustworthy" enough to pay back a loan. 60% of this fund is the U.S. Government—the highest trust level in the world.
-+
-+*5. 📅 Optimal Entry Strategy • Forecast:*
-+With the Fed expected to hold rates steady in early 2026, the price should stay in this range. • Verdict: 🏆 Best Entry:
-+January 2026 (Perfect for moving "winnings" from VTSAX into a safe harbor).
-+
-diff --git a/invesetment_agent/infrastructure/adapter/instructions/styler_bond_fund_instructions.md b/invesetment_agent/infrastructure/adapter/instructions/styler_bond_fund_instructions.md
-new file mode 100644
-index 0000000..12e2f32
---- /dev/null
-+++ b/invesetment_agent/infrastructure/adapter/instructions/styler_bond_fund_instructions.md
-@@ -0,0 +1,85 @@
-+# ROLE
-+
-+You are a Financial Design Specialist. Your goal is to make Bond Mutual Fund data readable for beginners by focusing on income,
-+safety, and stability compared to the stock market.
-+
-+# SLACK FORMATTING RULES (CRITICAL)
-+
-+- *BOLD*: Use single asterisks (*Text*). NEVER use double asterisks (**Text**).
-+- *TABLES*: Use a multiline code block (```) with an ASCII-style table.
-+- *EMOJIS*: Use :bank:, :hourglass_flowing_sand:, and :shield:.
-+
-+# REPORT STRUCTURE
-+
-+📡 *Daily Bond Fund Intelligence: [FUND NAME] ($[TICKER])*
-+🚀 *Quick View Summary**: Current price/yield vs. interest rate environment.
-+✅ Summary (Risks, Market Factors, and Growth / Returns)
-+* Risks / Challenges: Interest rate changes; credit risk; inflation risk; management risk.
-+* Market Factors / Competitors: Competes with other bond mutual funds and ETFs; affected by Fed policy.
-+* Future Growth / Returns Drivers: Regular interest income; potential for capital appreciation; diversification.
-+* Investor Takeaway: Suitable for stable income; check expense ratios and minimum investment.
-+
-+*1. 📉 Price Extremes*
-+
-+```text
-+Window      | High ($)   | Low ($)
-+------------|------------|------------
-+Current     | [Price]    | [Price]
-+7-Day       | [Price]    | [Price]
-+30-Day      | [Price]    | [Price]
-+3-Months    | [Price]    | [Price]
-+1-Year      | [Price]    | [Price]
-+```
-+
-+*2. 💵 The Paycheck:*
-+30-Day SEC Yield (Analogy: Annual Salary) • Meaning: The Yield is your "Annual Salary." It’s the interest the bond pays you for lending them your money. For every $1,000 you "hire" (invest), a 4% yield pays you $40 a year in steady cash.
-+
-+*3. ⏳ The Sensitivity:*
-+Average Duration (Analogy: The Seesaw) • Meaning: Duration measures how sensitive the bond is to interest rates. Think of a "Seesaw": if interest rates go UP by 1%, the bond's price will go DOWN by roughly the duration (e.g., 5%).
-+
-+*4. 🛡️ Safety Net: Credit Quality*
-+(Analogy: The Trust Level) • Meaning: This is the "Trust Level" of the people you are lending money to. Government bonds are the highest trust (very safe), while "High Yield" or "Junk" bonds are lower trust but pay more salary.
-+
-+*5. 📅 Optimal Entry Strategy*
-+(Next Month Forecast) • Verdict: Recommend a strategy for early 2026 based on the Fed's interest rate path.
-+
-+---
-+
-+# EXAMPLE REPORT
-+
-+📡 *Daily Bond Fund Intelligence: Vanguard Total Bond Market Index Fund (VBTLX) ($VBTLX)*
-+🚀 *Quick View Summary*: Neutral – Broad bond market exposure; current price $10.1, may move with interest rates.
-+✅ Summary (Risks, Market Factors, and Growth / Returns)
-+* Risks / Challenges: Bond prices can fall if interest rates rise; inflation may reduce real returns; corporate bonds carry credit risk; longer-duration bonds are more sensitive to rate changes.
-+* Market Factors / Competitors: Competes with other broad bond funds and ETFs; performance influenced by Federal Reserve policy, economic growth, and overall bond market trends.
-+* Future Growth / Returns Drivers: Provides stable income through interest payments; reinvested coupons can grow over time; potential gains if interest rates decline; diversification helps reduce portfolio risk.
-+* Investor Takeaway: Suitable for long-term investors seeking income and stability; expect short-term price fluctuations due to rate changes; check current yields to evaluate expected returns.
-+
-+*1. 📉 Price Extremes*
-+
-+```text
-+Window      | High ($)   | Low ($)
-+------------|------------|------------
-+Current     | 10.18      | 10.18
-+7-Day       | 10.25      | 10.15
-+30-Day      | 10.30      | 10.10
-+3-Months    | 10.40      | 9.95
-+1-Year      | 10.50      | 9.00
-+```
-+
-+*2. 💵 The Paycheck:*
-+30-Day SEC Yield • The Reality: Your "Salary" is 4.1%. In VTSAX, you hope for growth; in VBTLX, you are hired to collect
-+interest. For every $10,000 invested, you get $410/year in steady cash.
-+
-+*3. ⏳ The Sensitivity:*
-+Average Duration • The Seesaw: VBTLX has a 6.2-year duration. Think of it as a medium-length seesaw. If the Fed raises
-+interest rates 1%, your "Seat" (the price) drops 6.2%. It's more stable than long-term bonds, but not a flat floor.
-+
-+*4. 🛡️ Safety Net:*
-+Credit Quality • The Trust Level: While VTSAX depends on companies being "profitable," VBTLX only depends on them being "
-+trustworthy" enough to pay back a loan. 60% of this fund is the U.S. Government—the highest trust level in the world.
-+
-+*5. 📅 Optimal Entry Strategy • Forecast:*
-+With the Fed expected to hold rates steady in early 2026, the price should stay in this range. • Verdict: 🏆 Best Entry:
-+January 2026 (Perfect for moving "winnings" from VTSAX into a safe harbor).
-+
-diff --git a/invesetment_agent/infrastructure/adapter/instructions/styler_equity_fund_instructions.md b/invesetment_agent/infrastructure/adapter/instructions/styler_equity_fund_instructions.md
-new file mode 100644
-index 0000000..c233d6c
---- /dev/null
-+++ b/invesetment_agent/infrastructure/adapter/instructions/styler_equity_fund_instructions.md
-@@ -0,0 +1,79 @@
-+# ROLE
-+
-+You are a Financial Design Specialist. Your goal is to make equity fund data (Mutual Funds, Index Funds, ETFs) readable for beginners by focusing on diversification, expense ratios, and top holdings.
-+
-+# SLACK FORMATTING RULES (CRITICAL)
-+
-+- *BOLD*: Use single asterisks (*Text*). NEVER use double asterisks (**Text**).
-+- *TABLES*: Use a multiline code block (```) with an ASCII-style table.
-+- *EMOJIS*: Use :chart_with_upwards_trend:, :file_folder:, and :mag:.
-+
-+# REPORT STRUCTURE
-+
-+📡 *Daily Equity Fund Intelligence: [FUND NAME] ($[TICKER])*
-+🚀 *Quick View Summary**: Current price, YTD return, and fund type (Index/Active).
-+✅ Summary (Risks, Market Factors, and Growth / Returns)
-+* Risks / Challenges: Market risk; specific sector concentration if applicable; expense ratio impact; tracking error for index funds.
-+* Market Factors / Competitors: Performance vs. benchmark (e.g., S&P 500); comparison with similar low-cost funds.
-+* Future Growth / Returns Drivers: Underlying equity growth; dividend reinvestment; economic expansion.
-+* Investor Takeaway: Suitable for broad market exposure; check expense ratios; ideal for long-term "set and forget" investing.
-+
-+*1. 📉 Price Extremes*
-+
-+```text
-+Window      | High ($)   | Low ($)
-+------------|------------|------------
-+Current     | [Price]    | [Price]
-+7-Day       | [Price]    | [Price]
-+30-Day      | [Price]    | [Price]
-+3-Months    | [Price]    | [Price]
-+1-Year      | [Price]    | [Price]
-+```
-+
-+*2. 📂 The Basket: Top Holdings*
-+(Analogy: The Team Roster) • Meaning: You are buying a "Basket" of many companies at once. These are the top 5 "Star Players" in your team. Even if one company fails, the others in the basket help protect your money (this is called "Diversification").
-+
-+*3. 💰 The Fee: Expense Ratio*
-+(Analogy: The Management Tip) • Meaning: The Expense Ratio is the "Management Tip" or fee you pay the fund manager to run the basket. For example, 0.03% means for every $10,000 you invest, you only pay $3 a year. Lower is always better!
-+
-+*4. ⚖️ The Mix: Sector Exposure*
-+(Analogy: The Diet) • Meaning: This shows which industries the fund "eats" most (like Tech or Health). A "Balanced Diet" covers many industries, while a "Specific Diet" (like all Tech) might be riskier but could grow faster.
-+
-+*5. 📅 Optimal Entry Strategy*
-+(Next Month Forecast) • Verdict: Recommend a Dollar Cost Averaging (DCA) strategy for early 2026.
-+
-+---
-+
-+# EXAMPLE REPORT
-+
-+📡 *Daily Equity Fund Intelligence: Vanguard Total Stock Market Index Fund (VTSAX) ($VTSAX)*
-+🚀 *Quick View Summary*: Bullish – Low-cost broad market exposure; YTD Return: +15.2%.
-+✅ Summary (Risks, Market Factors, and Growth / Returns)
-+* Risks / Challenges: High exposure to the tech sector may lead to volatility; general market downturns affect all holdings; tracking error is minimal but exists.
-+* Market Factors / Competitors: Competes with Fidelity Total Market (FSKAX) and Schwab Total Stock Market (SWTSX); closely tracks the CRSP US Total Market Index.
-+* Future Growth / Returns Drivers: Long-term growth of the US economy; innovation in top holdings like Apple and Nvidia; compound growth through dividend reinvestment.
-+* Investor Takeaway: Excellent core holding for long-term investors; extremely low fee makes it a "Gold Standard" for passive investing.
-+
-+*1. 📉 Price Extremes*
-+
-+```text
-+Window      | High ($)   | Low ($)
-+------------|------------|------------
-+Current     | 134.10     | 134.10
-+7-Day       | 135.50     | 133.20
-+30-Day      | 136.00     | 130.50
-+3-Months    | 138.00     | 125.00
-+1-Year      | 138.00     | 105.00
-+```
-+
-+*2. 📂 The Basket: Top Holdings*
-+The Team Roster: Apple, Microsoft, Nvidia, Amazon, Meta. • Meaning: You aren't just betting on one horse; you've hired the 5 biggest tech giants (and 3,700 others) to work for you.
-+
-+*3. 💰 The Fee: Expense Ratio*
-+The Management Tip: 0.04%. • Meaning: For every $10,000 you invest, Vanguard only takes $4 a year to keep the lights on. It’s essentially free.
-+
-+*4. ⚖️ The Mix: Sector Exposure*
-+The Diet: 30% Tech, 13% Financials, 12% Healthcare. • Meaning: This is a "High Protein" diet. It’s heavy on growth (Tech) but has enough "Fiber" (Finance/Health) to stay healthy during a storm.
-+
-+*5. 📅 Optimal Entry Strategy • Forecast:*
-+The market is at all-time highs, but VTSAX is built for time IN the market, not timing the market. • Verdict: 🏆 Best Entry: Start DCA (Dollar Cost Averaging) in January 2026.
-diff --git a/invesetment_agent/infrastructure/adapter/instructions/styler_stock_instructions.md b/invesetment_agent/infrastructure/adapter/instructions/styler_stock_instructions.md
-new file mode 100644
-index 0000000..a759459
---- /dev/null
-+++ b/invesetment_agent/infrastructure/adapter/instructions/styler_stock_instructions.md
-@@ -0,0 +1,97 @@
-+You are a Financial Design Specialist. Your goal is to make stock data readable for beginners by using clear analogies and scannable formatting.
-+
-+CRITICAL: Use single asterisks *bold* for Slack. Never use double asterisks **
-+# SLACK FORMATTING RULES
-+- **BOLD**: Use single asterisks (*Text*). NEVER use double asterisks (**Text**).
-+- **TABLES**: Use a multiline code block (```) with an ASCII-style table.
-+- **EMOJIS**: Use standard shortcodes (e.g., :chart_with_upwards_trend:).
-+
-+# REPORT STRUCTURE
-+📡 *Daily Stock Intelligence: [COMPANY] ($[TICKER])*
-+🚀 *Quick View Summary**: current price for the stock and one-line sentiment (Bullish/Neutral/Bearish)
-+
-+✅ Summary (Challenges, Competitors, and Growth)
-+  * Risks / Challenges: [Valuation concerns, stock volatility, execution risk, regulatory/political risks]
-+  * Competitors: [Legacy companies, startups, and international rivals; how competition may affect market share or margins]
-+  * Future Growth Drivers: [New products/services, technology improvements, expansion into new markets, unique opportunities]
-+  * Investor Takeaway: [Short-term caution or wait for pullback, long-term growth potential, or other advice]
-+
-+*1. 📉 Price Extremes* (ASCII Table)
-+```
-+Window      | High ($)   | Low ($)
-+------------|------------|------------
-+Current     | [Price]    | [Price]
-+7-Day       | [Price]    | [Price]
-+30-Day      | [Price]    | [Price]
-+3-Months    | [Price]    | [Price]
-+1-Year      | [Price]    | [Price]
-+```
-+*2. 🚀 The Engine: Earnings Growth* (Analogy: Speed)
-+• Meaning: Earnings growth shows how much more profit the company is making compared to last year. High growth is like a car's 'Speed'—it's exciting, but if the 'Price Tag' (P/E) is too high, you might be overpaying for that speed.
-+
-+*3. ⚖️ Valuation: P/E Ratio* (Analogy: Price Tag)
-+• Meaning: The P/E (Price-to-Earnings) ratio is the 'Price Tag' of the stock. It tells you how many dollars you are paying for every $1 of profit the company makes. A high P/E is like a luxury store (expensive), while a low P/E might be a bargain bin.
-+
-+*4. 💰 Health: Cash Flow vs. Debt* (Analogy: Salary vs. Mortgage)
-+• Meaning: Free Cash Flow (FCF) is like your 'Take-home Salary' after paying all bills. Debt is like your 'Mortgage.' A healthy company (a 'Fortress') has plenty of salary to cover its mortgage, while a 'Leaky Bucket' struggles with too much debt.
-+
-+*5. 👤 Insider Activity* (Analogy: The Captain's Move)
-+• Meaning: Insider trading shows if the 'Captains' (CEOs/Directors) of the ship are buying or selling their own shares. If the Captain is buying, they likely expect smooth sailing. If they are selling, they might be preparing for rough seas.
-+• Recent Detailed Trades:
-+```
-+Date       | Insider Name      | Action | Price ($) | Shares
-+-----------|-------------------|--------|-----------|---------
-+[Date]     | [Name]            | [Buy/Sell] | [Price]   | [Qty]
-+```
-+• Interpretation: Provide a brief summary of what these moves suggest.
-+
-+*6. 📅 Optimal Entry Strategy* (Next Month Forecast and Concern)
-+• Verdict: Recommend Dec 2025 or Jan 2026 based on seasonal trends.
-+
-+---
-+
-+# EXAMPLE REPORT
-+📡 *Daily Stock Intelligence: Tesla Inc. ($TSLA)*
-+🚀 *Quick View Summary*: Neutral/Cautious – Sky-high valuation meets slowing profit growth.
-+
-+✅ Summary (Challenges, Competitors, and Growth)
-+  * Risks / Challenges: High valuation makes the stock sensitive to news; price swings are common; Cybercab production may face delays; changes in EV incentives or regulations could affect growth.
-+  * Competitors: Legacy automakers (Ford, GM, Toyota), new EV startups (Rivian, Lucid, Nio), and global rivals (BYD, XPeng) could pressure Tesla’s market share and margins.
-+  * Future Growth Drivers: Cybercab and new vehicle launches, battery technology improvements, energy products (solar, Powerwalls), global factory expansion, and autonomous driving software.
-+  * Investor Takeaway: Long-term growth potential remains strong, but short-term price may be volatile; wait for pullback near ~$445 for lower-risk entry.
-+
-+*1. 📉 Price Extremes* (ASCII Table)
-+```
-+Window      | High ($)   | Low ($)
-+------------|------------|------------
-+Current     | 475.20     | 475.20
-+7-Day       | 491.50     | 465.00
-+30-Day      | 512.00     | 434.00
-+3-Months    | 545.00     | 400.00
-+1-Year      | 512.00     | 138.80
-+```
-+
-+*2. 🚀 The Engine: Earnings Growth* (Analogy: Speed)
-+• The Concern: Tesla's "Engine" is currently in reverse. Even though the stock price is at all-time highs, actual profit is shrinking. This creates a massive risk for new buyers.
-+
-+*3. ⚖️ Valuation: P/E Ratio* (Analogy: Price Tag)
-+• The Concern: You are paying $313 for every $1 of profit.
-+  This is 12x more expensive than the average stock.
-+  You are buying a "Dream" of future Robotaxis, not current car sales.
-+
-+*4. 💰 Health: Cash Flow vs. Debt* (Analogy: Salary vs. Mortgage)
-+• Cash Flow vs. Debt • Free Cash Flow (FCF): $4.0B (Quarterly) • Total Debt: $9.5B • Comparison: > Leveraged: While Tesla has a healthy cash flow, its debt is more than double its quarterly surplus. It is stable, but not a "Debt-Free" fortress yet.
-+
-+*5. 👤 Insider Activity* (Analogy: The Captain's Move)
-+• Recent Detailed Trades:
-+```
-+Date       | Insider Name      | Action | Price ($) | Shares
-+-----------|-------------------|--------|-----------|---------
-+2025-10-15 | Elon Musk         | Sell   | 482.10    | 50,000
-+2025-10-10 | Robyn Denholm     | Sell   | 475.00    | 25,000
-+```
-+• Interpretation: The "Captain" is offloading a portion of their cargo. This doesn't always mean the ship is sinking, but it shows they are locking in profits at these high valuations.
-+
-+*6. 📅 Optimal Entry Strategy* (Next Month Forecast and Concern)
-+• Forecast: High volatility expected ahead of the April 2026 Cybercab production launch.
-+• Verdict: 🏆 Best Entry: January 2026 (Wait for the December "Hype" to cool down).
-\ No newline at end of file
-diff --git a/invesetment_agent/infrastructure/adapter/instructions/team_leader_instructions.md b/invesetment_agent/infrastructure/adapter/instructions/team_leader_instructions.md
-new file mode 100644
-index 0000000..f511e05
---- /dev/null
-+++ b/invesetment_agent/infrastructure/adapter/instructions/team_leader_instructions.md
-@@ -0,0 +1,25 @@
-+# ROLE: Investment Team Orchestrator
-+You are the Orchestrator responsible for coordinating the **Finance_Agent** (data retrieval) and the **Slack_Styler** (report generation). Your goal is to ensure institutional-grade accuracy and strict Slack formatting.
-+
-+# QUALITY CONTROL CHECKLIST
-+Before finalizing any response, you must verify the following:
-+
-+1.  *Price Extremes Table*: Does the report include a technical levels table with Current, 7-Day, 30-Day, 3-Month, and 1-Year metrics (High and Low)? For the 'Current' row, are High and Low both set to the Current Price?
-+2.  *Section Requirements*: Does the report contain all mandatory sections based on asset type?
-+    - For Stocks: 📡 Summary, 📉 Price, 🚀 Earnings, ⚖️ Valuation, 💰 Health, 👤 Insider Activity (with detailed trades table including Name, Action, Price, and Date), 📅 Optimal Entry.
-+    - For Funds/Bonds: 📡 Summary, 📉 Price, plus the 3 asset-specific sections defined in the template (e.g., 📂 Basket/💵 Paycheck, 💰 Fee/⏳ Sensitivity, ⚖️ Mix/🛡️ Safety).
-+3.  *Analogies & Explanations*: Are the required analogies and beginner-friendly explanations (e.g., Price Tag for P/E, Salary for Yield, Seesaw for Duration) correctly applied?
-+4.  *Code Blocks*: Is the price table wrapped strictly in a ```text code block?
-+5.  *Naming Convention*: Does the title follow the exact format: 📡 *Daily [Asset Type] Intelligence: [COMPANY/FUND NAME] ($[TICKER])*?
-+6.  *Beginner-Friendly Language*: Is the report free of unexplained jargon? Every technical term (P/E, FCF, Duration, Expense Ratio, Insider Trading) MUST have its corresponding "Meaning" explanation as defined in the template.
-+# SLACK FORMATTING RULES (CRITICAL)
-+You must enforce these styling rules without exception:
-+- *BOLD*: Use single asterisks (*Text*) for bolding. NEVER use double asterisks (**Text**).
-+- *TABLES*: Do NOT use standard Markdown tables. Use only multiline code blocks (```) with ASCII borders for compatibility.
-+- *EMOJIS*: Use standard shortcodes (e.g., :chart_with_upwards_trend:, :warning:, :white_check_mark:).
-+- *BULLETS*: Use a single dash (-) or a bullet point (•).
-+- *SECTIONS*: Separate each topic with a bold header and a newline.
-+- *NO HTML*: Strictly avoid <b> or <i> tags; Slack will reject the payload.
-+
-+# ERROR HANDLING
-+- If the **Slack_Styler** output is incomplete, missing an analogy, or uses incorrect bolding, you MUST command it to regenerate the specific section before delivering the final result.
-\ No newline at end of file
++            raise AgentExecutionError(message=content, name=run.agent_name or self.agent.name or "Unknown Agent")
++        return content
+
+-    def __init__(self, agent_services: List[AgentService]):
+-        self.agent_services: List[AgentService] = agent_services or []
+
+-    def get_answer(self, query: str, instructions: List[str]) -> str:
+-        agent_errors: List[AgentExecutionError] = []
++class FallbackAgnoAgentService(AgentService):
++    def __init__(self, agent_services: list[AgentService]):
++        self.agent_services: list[AgentService] = agent_services or []
++
++    def get_answer(self, query: str) -> str:
++        agent_errors: list[AgentExecutionError] = []
+         for agent_service in self.agent_services:
+             try:
+-                answer = agent_service.get_answer(query, instructions)
++                answer = agent_service.get_answer(query)
+                 if answer:
+                     return answer
+             except AgentExecutionError as e:
+                 agent_errors.append(e)
+
+         raise MultiAgentExecutionError(errors=agent_errors)
+-
+-
+-class FinancialAgnoAgentService(AgentService):
+-
+-    def __init__(self, model: Model):
+-        self.model: Model = model
+-
+-    @staticmethod
+-    def is_rate_limit_error(exception):
+-        """Returns True if the exception contains a 429 or Resource Exhausted message."""
+-        error_msg = str(exception)
+-        return "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg
+-
+-    @retry(
+-        retry=retry_if_exception(is_rate_limit_error),
+-        stop=stop_after_attempt(3),
+-        wait=wait_exponential(multiplier=15, min=30, max=60),
+-        reraise=True
+-    )
+-    def get_answer(self,
+-                   query: str,
+-                   instructions: Optional[Union[str, List[str]]] = None):
+-        agent: Agent = Agent(
+-            model=self.model,
+-            tools=[
+-                YFinanceTools()
+-            ],
+-            debug_mode=True,
+-            name="Investment Analyst",
+-            description="Researches stock prices, analyst recommendations, and stock fundamentals.",
+-            instructions=instructions,
+-        )
+-
+-        run: RunOutput = agent.run(
+-            query,
+-            stream=False,
+-        )
+-        if run.status == RunStatus.error:
+-            raise AgentExecutionError(message=run.content, name=agent.name, )
+-        return run.content
+diff --git a/invesetment_agent/infrastructure/adapter/agno_financial_team/__init__.py b/invesetment_agent/infrastructure/adapter/agno_financial_team/__init__.py
+index 0d69294..4fa3492 100644
+--- a/invesetment_agent/infrastructure/adapter/agno_financial_team/__init__.py
++++ b/invesetment_agent/infrastructure/adapter/agno_financial_team/__init__.py
+@@ -1,4 +1,4 @@
+ from .financial_agent import AgnoFinancialAgent
+ from .financial_team import AgnoFinancialTeam
+-from .styler_agent import AgnoStylerAgent
+ from .news_sentiment_agent import AgnoNewsSentimentAgent
++from .styler_agent import AgnoStylerAgent
+diff --git a/invesetment_agent/infrastructure/adapter/agno_financial_team/agno_agent.py b/invesetment_agent/infrastructure/adapter/agno_financial_team/agno_agent.py
+index 35093cd..05a24b9 100644
+--- a/invesetment_agent/infrastructure/adapter/agno_financial_team/agno_agent.py
++++ b/invesetment_agent/infrastructure/adapter/agno_financial_team/agno_agent.py
+@@ -1,5 +1,4 @@
+ from abc import abstractmethod
+-from typing import List, Union
+
+ from agno.agent import Agent
+ from agno.team import Team
+@@ -8,10 +7,9 @@ from invesetment_agent.application.port.ai_agent_service import AgentService
+
+
+ class AgnoAgentService(AgentService):
+-
+-    def get_answer(self, query: str, instructions: List[str]) -> str:
++    def get_answer(self, query: str) -> str:
+         raise NotImplementedError
+
+     @abstractmethod
+-    def get_agent(self) -> Union[Agent | Team]:
++    def get_agent(self) -> Agent | Team:
+         raise NotImplementedError
+diff --git a/invesetment_agent/infrastructure/adapter/agno_financial_team/financial_agent.py b/invesetment_agent/infrastructure/adapter/agno_financial_team/financial_agent.py
+index 3a97b83..d00aaab 100644
+--- a/invesetment_agent/infrastructure/adapter/agno_financial_team/financial_agent.py
++++ b/invesetment_agent/infrastructure/adapter/agno_financial_team/financial_agent.py
+@@ -1,5 +1,3 @@
+-from typing import Optional, Union, List
+-
+ from agno.agent import Agent
+ from agno.db import BaseDb
+ from agno.db.base import AsyncBaseDb
+@@ -10,8 +8,8 @@ from agno.tools.yfinance import YFinanceTools
+
+ from invesetment_agent.application.exceptions import AgentExecutionError
+ from invesetment_agent.application.external_service.sec_tools import build_insider_table
+-from invesetment_agent.infrastructure.adapter.agno_financial_team.utils import current_file_dir, load_instruction
+ from invesetment_agent.infrastructure.adapter.agno_financial_team.agno_agent import AgnoAgentService
++from invesetment_agent.infrastructure.adapter.agno_financial_team.utils import current_file_dir, load_instruction
+
+ finance_rules = load_instruction(current_file_dir / "instructions" / "finance_agent_instructions.md")
+
+@@ -20,9 +18,7 @@ class AgnoFinancialAgent(AgnoAgentService):
+     def get_agent(self):
+         return self.finance_agent
+
+-    def __init__(self,
+-                 model: Model,
+-                 db: Optional[Union[BaseDb, AsyncBaseDb]] = None):
++    def __init__(self, model: Model, db: BaseDb | AsyncBaseDb | None = None):
+         self.finance_agent = Agent(
+             name="Finance_Agent",
+             role="Data Provider",
+@@ -33,11 +29,15 @@ class AgnoFinancialAgent(AgnoAgentService):
+             debug_mode=True,
+         )
+
+-    def get_answer(self, query: str, instructions: List[str]) -> str:
++    def get_answer(self, query: str) -> str:
+         run: RunOutput = self.finance_agent.run(
+             query,
+             stream=False,
+         )
++        content = run.content or ""
+         if run.status == RunStatus.error:
+-            raise AgentExecutionError(message=run.content, name=run.name, )
+-        return run.content
++            raise AgentExecutionError(
++                message=content,
++                name=run.agent_name or self.finance_agent.name or "Unknown",
++            )
++        return content
+diff --git a/invesetment_agent/infrastructure/adapter/agno_financial_team/financial_team.py b/invesetment_agent/infrastructure/adapter/agno_financial_team/financial_team.py
+index dbb7c17..7bf33b5 100644
+--- a/invesetment_agent/infrastructure/adapter/agno_financial_team/financial_team.py
++++ b/invesetment_agent/infrastructure/adapter/agno_financial_team/financial_team.py
+@@ -1,5 +1,4 @@
+ from pathlib import Path
+-from typing import Optional, Union, List
+
+ from agno.agent import Agent
+ from agno.db import BaseDb
+@@ -10,8 +9,8 @@ from agno.run.team import TeamRunOutput
+ from agno.team import Team
+
+ from invesetment_agent.application.exceptions import AgentExecutionError
+-from invesetment_agent.infrastructure.adapter.agno_financial_team.utils import load_instruction, current_file_dir
+ from invesetment_agent.infrastructure.adapter.agno_financial_team.agno_agent import AgnoAgentService
++from invesetment_agent.infrastructure.adapter.agno_financial_team.utils import current_file_dir, load_instruction
+
+ finance_rules = load_instruction(current_file_dir / "instructions" / "finance_agent_instructions.md")
+
+@@ -26,39 +25,46 @@ news_sentiment_template = load_instruction(instructions_path / "news_sentiment_i
+
+
+ class AgnoFinancialTeam(AgnoAgentService):
+-    def get_agent(self) -> Union[Agent | Team]:
++    def get_agent(self) -> Agent | Team:
+         return self.team_leader
+
+-    def __init__(self,
+-                 agno_agent_services: List[AgnoAgentService],
+-                 model: Model,
+-                 db: Optional[Union[BaseDb, AsyncBaseDb]] = None):
++    def __init__(
++        self, agno_agent_services: list[AgnoAgentService], model: Model, db: BaseDb | AsyncBaseDb | None = None
++    ):
+         self.team_leader = Team(
+             name="Investment_Team_Leader",
+             members=[agno_agent_service.get_agent() for agno_agent_service in agno_agent_services],
+             model=model,
+             db=db,
+-            instructions=
+-            [
++            instructions=[
+                 "--- DYNAMIC ROUTING LOGIC ---",
+-                "Step 1: Use Finance_Agent to determine the ticker type. Supported types: Stock, Equity Fund, Mutual Fund, Index Fund, Bond ETF, Bond Fund.",
+-                "Step 1a: Validate the ticker type. If the detected type is NOT one of the supported types, raise a warning: Ticker type unknown. Please verify input.",
++                "Step 1: Use Finance_Agent to determine the ticker type. Supported types: "
++                "Stock, Equity Fund, Mutual Fund, Index Fund, Bond ETF, Bond Fund.",
++                "Step 1a: Validate the ticker type. If the detected type is NOT one of the supported types, "
++                "raise a warning: Ticker type unknown. Please verify input.",
+                 f"Step 2: IF STOCK -> Instruct Styler to use THIS template: \n{stock_template}",
+-                f"Step 2a: IF STOCK -> Also instruct News_Sentiment_Agent to provide a sentiment report using THIS template: \n{news_sentiment_template}",
+-                f"Step 3: IF EQUITY FUND, MUTUAL FUND, or INDEX FUND -> Instruct Styler to use THIS template: \n{equity_fund_template}",
++                f"Step 2a: IF STOCK -> Also instruct News_Sentiment_Agent to provide a sentiment report, "
++                f"using THIS template: \n{news_sentiment_template}",
++                f"Step 3: IF EQUITY FUND, MUTUAL FUND, or INDEX FUND -> "
++                f"Instruct Styler to use THIS template: \n{equity_fund_template}",
+                 f"Step 4: IF BOND ETF -> Instruct Styler to use THIS template: \n{bond_etf_template}",
+                 f"Step 5: IF BOND FUND -> Instruct Styler to use THIS template: \n{bond_fund_template}",
+                 "Step 6: Audit the output. Ensure single-asterisk bolding (*Text*) and ASCII tables in ``` blocks.",
+-            ] + [leader_rules],
++                leader_rules,
++            ],
+             debug_mode=True,
+             markdown=False,
+         )
+
+-    def get_answer(self, query: str, instructions: List[str]) -> str:
++    def get_answer(self, query: str) -> str:
+         run: TeamRunOutput = self.team_leader.run(
+             query,
+             stream=False,
+         )
++        content = run.content or ""
+         if run.status == RunStatus.error:
+-            raise AgentExecutionError(message=run.content, name=run.team_name, )
+-        return run.content
++            raise AgentExecutionError(
++                message=content,
++                name=run.team_name or "Investment_Team_Leader",
++            )
++        return content
+diff --git a/invesetment_agent/infrastructure/adapter/agno_financial_team/news_sentiment_agent.py b/invesetment_agent/infrastructure/adapter/agno_financial_team/news_sentiment_agent.py
+index 4b773e7..a413de3 100644
+--- a/invesetment_agent/infrastructure/adapter/agno_financial_team/news_sentiment_agent.py
++++ b/invesetment_agent/infrastructure/adapter/agno_financial_team/news_sentiment_agent.py
+@@ -1,5 +1,3 @@
+-from typing import Optional, Union, List
+-
+ from agno.agent import Agent
+ from agno.db import BaseDb
+ from agno.db.base import AsyncBaseDb
+@@ -11,8 +9,8 @@ from agno.tools.hackernews import HackerNewsTools
+ from agno.tools.reddit import RedditTools
+
+ from invesetment_agent.application.exceptions import AgentExecutionError
+-from invesetment_agent.infrastructure.adapter.agno_financial_team.utils import current_file_dir, load_instruction
+ from invesetment_agent.infrastructure.adapter.agno_financial_team.agno_agent import AgnoAgentService
++from invesetment_agent.infrastructure.adapter.agno_financial_team.utils import current_file_dir, load_instruction
+
+ news_sentiment_rules = load_instruction(current_file_dir / "instructions" / "news_sentiment_instructions.md")
+
+@@ -21,9 +19,7 @@ class AgnoNewsSentimentAgent(AgnoAgentService):
+     def get_agent(self):
+         return self.web_agent
+
+-    def __init__(self,
+-                 model: Model,
+-                 db: Optional[Union[BaseDb, AsyncBaseDb]] = None):
++    def __init__(self, model: Model, db: BaseDb | AsyncBaseDb | None = None):
+         self.web_agent = Agent(
+             name="News_Sentiment_Agent",
+             role="Sentiment Analyst",
+@@ -34,11 +30,12 @@ class AgnoNewsSentimentAgent(AgnoAgentService):
+             debug_mode=True,
+         )
+
+-    def get_answer(self, query: str, instructions: List[str]) -> str:
++    def get_answer(self, query: str) -> str:
+         run: RunOutput = self.web_agent.run(
+             query,
+             stream=False,
+         )
++        content = run.content or ""
+         if run.status == RunStatus.error:
+-            raise AgentExecutionError(message=run.content, name=run.name)
+-        return run.content
++            raise AgentExecutionError(message=content, name=run.agent_name or self.web_agent.name or "Unknown")
++        return content
+diff --git a/invesetment_agent/infrastructure/adapter/agno_financial_team/styler_agent.py b/invesetment_agent/infrastructure/adapter/agno_financial_team/styler_agent.py
+index 95525d1..d7682ea 100644
+--- a/invesetment_agent/infrastructure/adapter/agno_financial_team/styler_agent.py
++++ b/invesetment_agent/infrastructure/adapter/agno_financial_team/styler_agent.py
+@@ -1,5 +1,3 @@
+-from typing import Optional, Union, List
+-
+ from agno.agent import Agent
+ from agno.db import BaseDb
+ from agno.db.base import AsyncBaseDb
+@@ -16,26 +14,28 @@ finance_rules = load_instruction(current_file_dir / "instructions" / "finance_ag
+
+
+ class AgnoStylerAgent(AgnoAgentService):
+-    def get_agent(self) -> Union[Agent | Team]:
++    def get_agent(self) -> Agent | Team:
+         return self.styler_agent
+
+-    def __init__(self,
+-                 model: Model,
+-                 db: Optional[Union[BaseDb, AsyncBaseDb]] = None):
++    def __init__(self, model: Model, db: BaseDb | AsyncBaseDb | None = None):
+         self.styler_agent = Agent(
+             name="Slack_Styler",
+             role="Designer",
+             description="Transforms data into Slack-formatted reports using analogies.",
+             model=model,
+             db=db,
+-            instructions=["Wait for the Team Leader to provide the specific MD template based on asset type."]
++            instructions=["Wait for the Team Leader to provide the specific MD template based on asset type."],
+         )
+
+-    def get_answer(self, query: str, instructions: List[str]) -> str:
++    def get_answer(self, query: str) -> str:
+         run: RunOutput = self.styler_agent.run(
+             query,
+             stream=False,
+         )
++        content = run.content or ""
+         if run.status == RunStatus.error:
+-            raise AgentExecutionError(message=run.content, name=run.name, )
+-        return run.content
++            raise AgentExecutionError(
++                message=content,
++                name=run.agent_name or self.styler_agent.name or "Unknown",
++            )
++        return content
+diff --git a/invesetment_agent/infrastructure/adapter/agno_financial_team/utils.py b/invesetment_agent/infrastructure/adapter/agno_financial_team/utils.py
+index 065ea98..431057b 100644
+--- a/invesetment_agent/infrastructure/adapter/agno_financial_team/utils.py
++++ b/invesetment_agent/infrastructure/adapter/agno_financial_team/utils.py
+@@ -1,7 +1,7 @@
+ from pathlib import Path
+
+
+-def load_instruction(path: Path):
++def load_instruction(path: Path) -> str:
+     if path.exists():
+         return path.read_text(encoding="utf-8")
+     return f"Error: {path} not found."
 diff --git a/invesetment_agent/infrastructure/cli/app.py b/invesetment_agent/infrastructure/cli/app.py
-index 5f0ac5f..abc97a5 100644
+index b23bf22..7190f98 100644
 --- a/invesetment_agent/infrastructure/cli/app.py
 +++ b/invesetment_agent/infrastructure/cli/app.py
-@@ -12,2 +12,2 @@ from invesetment_agent.application.dtos.commons import Result
--from invesetment_agent.application.dtos.stock_summarization_dtos import SingleStockSummarizationRequest, \
--    MultiStockSummarizationRequest
-+from invesetment_agent.application.dtos.stock_summarization_dtos import SingleEquitySummarizationRequest, \
-+    MultiEquitySummarizationRequest
-@@ -18,2 +18,2 @@ from invesetment_agent.infrastructure.config.container import create_application
--project_root = Path(__file__).parent.parent.parent.parent
--env_path = project_root / ".env"
-+current_file_dir = Path(__file__).resolve().parent
-+env_path = current_file_dir / ".env"
-@@ -105 +105 @@ def main():
--        SingleStockSummarizationRequest("VTSAX"),
-+        SingleEquitySummarizationRequest("VTSAX"),
-@@ -107,4 +107,4 @@ def main():
--        SingleStockSummarizationRequest("VBTLX"),
--        SingleStockSummarizationRequest("FNMA"),
--        SingleStockSummarizationRequest("TSLA"),
--        SingleStockSummarizationRequest("AMZN"),
-+        SingleEquitySummarizationRequest("VBTLX"),
-+        SingleEquitySummarizationRequest("FNMA"),
-+        SingleEquitySummarizationRequest("TSLA"),
-+        SingleEquitySummarizationRequest("AMZN"),
-@@ -120 +120 @@ def main():
--    stock_symbols = " ".join([stock.stock.upper() for stock in stocks])
-+    stock_symbols = " ".join([stock.equity.upper() for stock in stocks])
-@@ -136 +136 @@ def main():
--        result: Result = stock_summarization_use_case.execute(MultiStockSummarizationRequest([stock]))
-+        result: Result = stock_summarization_use_case.execute(MultiEquitySummarizationRequest([stock]))
-diff --git a/invesetment_agent/infrastructure/cli/playground/README.md b/invesetment_agent/infrastructure/cli/playground/README.md
-new file mode 100644
-index 0000000..4930241
---- /dev/null
-+++ b/invesetment_agent/infrastructure/cli/playground/README.md
-@@ -0,0 +1,41 @@
-+## 💲 AI Finance Agent Team with Web Access
-+
-+This script demonstrates how to build a team of AI agents that work together as a financial analyst using GPT-4o in just 20 lines of Python code. The system combines web search capabilities with financial data analysis tools to provide comprehensive financial insights.
-+
-+### Features
-+- Multi-agent system with specialized roles:
-+    - Web Agent for general internet research
-+    - Finance Agent for detailed financial analysis
-+    - Team Agent for coordinating between agents
-+- Real-time financial data access through YFinance
-+- Web search capabilities using DuckDuckGo
-+- Persistent storage of agent interactions using SQLite
-+
-+### How to get Started?
-+
-+1. Clone the GitHub repository
-+```bash
-+git clone https://github.com/Shubhamsaboo/awesome-llm-apps.git
-+cd advanced_ai_agents/multi_agent_apps/agent_teams/ai_finance_agent_team
-+```
-+
-+2. Install the required dependencies:
-+
-+```bash
-+pip install -r requirements.txt
-+```
-+
-+3. Get your OpenAI API Key
-+
-+- Sign up for an [OpenAI account](https://platform.openai.com/) (or the LLM provider of your choice) and obtain your API key.
-+- Set your OpenAI API key as an environment variable:
-+```bash
-+export OPENAI_API_KEY='your-api-key-here'
-+```
-+
-+4. Run the team of AI Agents
-+```bash
-+python3 finance_agent_team.py
-+```
-+
-+5. Open your web browser and navigate to the URL provided in the console output to interact with the team of AI agents through the playground interface.
-diff --git a/invesetment_agent/infrastructure/cli/playground/__init__.py b/invesetment_agent/infrastructure/cli/playground/__init__.py
-new file mode 100644
-index 0000000..e69de29
-diff --git a/invesetment_agent/infrastructure/cli/playground/finance_agent_team.py b/invesetment_agent/infrastructure/cli/playground/finance_agent_team.py
-new file mode 100644
-index 0000000..d2a4124
---- /dev/null
-+++ b/invesetment_agent/infrastructure/cli/playground/finance_agent_team.py
-@@ -0,0 +1,69 @@
-+import os
-+
-+from agno.agent import Agent
-+from agno.db.sqlite import SqliteDb
-+from agno.models.google import Gemini
-+from agno.os import AgentOS
-+from agno.team import Team
-+from agno.tools.duckduckgo import DuckDuckGoTools
-+from agno.tools.yfinance import YFinanceTools
-+
-+# Setup database for storage
-+db = SqliteDb(db_file="agents.db")
-+google_api_key = os.environ.get("GOOGLE_API_KEY")
-+if not google_api_key:
-+    raise RuntimeError("GOOGLE_API_KEY not set in environment. Please set it (e.g., in .env).")
-+
-+model = Gemini(
-+    id="gemini-3-pro-preview",
-+    api_key=google_api_key,
-+
+@@ -1,7 +1,6 @@
+ import os
+ from datetime import datetime
+ from pathlib import Path
+-from typing import Optional
+ from zoneinfo import ZoneInfo
+
+ from dotenv import load_dotenv
+@@ -9,11 +8,11 @@ from slack_sdk import WebClient
+ from slack_sdk.errors import SlackApiError
+
+ from invesetment_agent.application.dtos.commons import Result
+-from invesetment_agent.application.dtos.stock_summarization_dtos import SingleTickerSummarizationRequest, \
+-    MultiTickerSummarizationRequest
+-from invesetment_agent.infrastructure.config.container import Application
+-from invesetment_agent.infrastructure.config.container import create_application
+-
++from invesetment_agent.application.dtos.stock_summarization_dtos import (
++    MultiTickerSummarizationRequest,
++    SingleTickerSummarizationRequest,
 +)
-+web_agent = Agent(
-+    name="Web Agent",
-+    role="Search the web for information",
-+    model=model,
-+    tools=[DuckDuckGoTools()],
-+    db=db,
-+    add_history_to_context=True,
-+    markdown=True,
-+)
++from invesetment_agent.infrastructure.config.container import Application, create_application
+
+ # Load environment variables - try project root first, then current directory
+ current_file_dir = Path(__file__).resolve().parent
+@@ -41,7 +40,7 @@ def resolve_channel_id(channel: str, slack_client: WebClient) -> str:
+             response = slack_client.conversations_list()
+             for ch in response["channels"]:
+                 if ch["name"] == channel[1:]:
+-                    return ch["id"]
++                    return str(ch["id"])
+         except SlackApiError:
+             pass
+     return channel
+@@ -50,29 +49,29 @@ def resolve_channel_id(channel: str, slack_client: WebClient) -> str:
+ class SlackUserConverter:
+     """Converts email addresses to Slack user IDs."""
+
+-    def __init__(self, slack_client: Optional[WebClient] = None):
++    def __init__(self, slack_client: WebClient | None = None):
+         """
+         Initialize the converter with a Slack client.
+-
 +
-+finance_agent = Agent(
-+    name="Finance Agent",
-+    role="Get financial data",
-+    model=model,
-+    tools=[YFinanceTools(
-+        # stock_price=True,
-+        # analyst_recommendations=True,
-+        # company_info=True, company_news=True
-+    )],
-+    instructions=["Always use tables to display data"],
-+    db=db,
-+    add_history_to_context=True,
-+    markdown=True,
-+)
+         Args:
+             slack_client: Optional Slack WebClient. If not provided, will create one.
+         """
+         self._slack_client = slack_client or get_slack_client()
+
+-    def convert(self, email: str) -> Optional[str]:
++    def convert(self, email: str) -> str | None:
+         """
+         Convert an email address to a Slack user ID.
+-
 +
-+agent_team = Team(
-+    name="Agent Team (Web+Finance)",
-+    model=model,
-+    members=[web_agent, finance_agent],
-+    debug_mode=True,
-+    reasoning=True,        # Enables the internal 'thinking' steps
-+    stream=True,           # Tells the server to push data as it's generated
-+    markdown=True,
-+)
+         Args:
+             email: The email address to look up.
+-
 +
-+# agent_os = AgentOS(teams=[agent_team])
-+# app = agent_os.get_app()
-+
-+if __name__ == "__main__":
-+    # agent_os.serve(app="finance_agent_team:app", reload=True,)
-+    query = """
-+    for Amzn and TESLA stock,
-+
-+Can you get the detail of CEO buying/selling stock within 3 months, 1 month, 1 week, 24 hours.
-+other than CEO, can you get the same info of insider transation for the same time ranges.
-+can you get the selling stocks percentage too?
-+    """
-+    agent_team.run(query, stream=False,)
+         Returns:
+             The Slack user ID if found, None otherwise.
+         """
+         try:
+             response = self._slack_client.users_lookupByEmail(email=email)
+             if response["ok"] and "user" in response:
+-                return response["user"]["id"]
++                return str(response["user"]["id"])
+         except SlackApiError as e:
+             # User not found or other API error
+             if e.response.get("error") != "users_not_found":
+@@ -81,33 +80,30 @@ class SlackUserConverter:
+         return None
+
+
+-def post_to_slack(channel: str, text: str, thread_ts: str = None) -> str:
++def post_to_slack(channel: str, text: str, thread_ts: str | None = None) -> str:
+     """Post a message to a Slack channel. Returns the message timestamp."""
+-    slack_client = get_slack_client()
+-    channel_id = resolve_channel_id(channel, slack_client)
++    slack_client: WebClient = get_slack_client()
++    channel_id: str = resolve_channel_id(channel, slack_client)
+
+-    try:
+-        response = slack_client.chat_postMessage(
+-            channel=channel_id,
+-            text=text,
+-            thread_ts=thread_ts,
+-        )
+-        return response["ts"]
+-    except SlackApiError as e:
+-        raise RuntimeError(f"Failed to post to Slack: {e.response['error']}")
++    response = slack_client.chat_postMessage(
++        channel=channel_id,
++        text=text,
++        thread_ts=thread_ts,
++    )
++    return str(response["ts"])
+
+
+-def main():
++def main() -> None:
+     app: Application = create_application()
+     stock_summarization_use_case = app.stock_summarization_use_case
+
+     # Define stocks to analyze
+     stocks = [
+-        SingleTickerSummarizationRequest("VTSAX"),
+-        #sAdd more stocks here as needed
+-        SingleTickerSummarizationRequest("VBTLX"),
+-        SingleTickerSummarizationRequest("FNMA"),
+-        SingleTickerSummarizationRequest("TSLA"),
++        # SingleTickerSummarizationRequest("VTSAX"),
++        # sAdd more stocks here as needed
++        # SingleTickerSummarizationRequest("VBTLX"),
++        # SingleTickerSummarizationRequest("FNMA"),
++        # SingleTickerSummarizationRequest("TSLA"),
+         SingleTickerSummarizationRequest("AMZN"),
+     ]
+
+@@ -121,15 +117,16 @@ def main():
+     stock_symbols = " ".join([stock.ticker.upper() for stock in stocks])
+
+     # Create catchy, Slack-friendly initial message
+-    initial_message: str = (f"📊 *Daily Stock Analysis* | {date_str} at {time_str}\n"
+-                            f"Analyzing: {stock_symbols}\n")
++    initial_message: str = f"📊 *Daily Stock Analysis* | {date_str} at {time_str}\nAnalyzing: {stock_symbols}\n"
+     if SLACK_USER_EMAIL_MENTION:
+         emails = SLACK_USER_EMAIL_MENTION.split()
+         user_ids = [SlackUserConverter().convert(email) for email in emails]
+-        user_tags = [f"<@{user_id}>" for user_id in user_ids]
++        user_tags = [f"<@{user_id}>" for user_id in user_ids if user_id]
+         user_tag = " ".join(user_tags)
+         initial_message += f"Hey {user_tag}! 👋 Generating insights within thread..."
+
++    if not SLACK_CHANNEL:
++        raise ValueError("SLACK_CHANNEL not set in environment")
+     thread_ts = post_to_slack(SLACK_CHANNEL, initial_message)
+
+     # Execute stock summarization and post results as thread replies
 diff --git a/invesetment_agent/infrastructure/config/container.py b/invesetment_agent/infrastructure/config/container.py
-index eb36483..313b8a6 100644
+index b56344a..3551d7c 100644
 --- a/invesetment_agent/infrastructure/config/container.py
 +++ b/invesetment_agent/infrastructure/config/container.py
-@@ -5,0 +6 @@ from dataclasses import dataclass
-+from agno.models.deepseek import DeepSeek
-@@ -7 +7,0 @@ from agno.models.google import Gemini
--from agno.models.huggingface import HuggingFace
-@@ -9 +9 @@ from agno.models.groq import Groq
--from agno.models.deepseek import DeepSeek
-+from agno.models.huggingface import HuggingFace
-@@ -13,3 +13,4 @@ from dotenv import load_dotenv
--from invesetment_agent.application.port.ai_agent_service import SingleAgentService
--from invesetment_agent.application.usecases.single_stock_summarization_usecase import StockSummarizationUseCase
--from invesetment_agent.infrastructure.adapter.agno_agent import AgnoAgentService, FallbackAgnoAgentService
-+from invesetment_agent.application.port.ai_agent_service import AgentService
-+from invesetment_agent.application.usecases.equity_summarization_usecase import EquitySummarizationUseCase
-+from invesetment_agent.infrastructure.adapter.agno_agent import FallbackAgnoAgentService, FinancialAgnoAgentService
-+from invesetment_agent.infrastructure.adapter.agno_financial_agent import AgnoFinancialAgent
-@@ -26,6 +27,6 @@ class Application:
--    def create_fallback_agent_service(self, role: str, description: str) -> SingleAgentService:
--        #hf_service = self.create_hf_agent_service(role=role, description=description)
--        google_service = self.create_google_agent_service(role=role, description=description)
--        # groq = self.create_grok_agent_service(role=role, description=description)
--        #deepseek = self.create_deepseek_agent_service(role=role, description=description)
--        #openrouter = self.create_openrouter_agent_service(role=role, description=description)
-+    def create_fallback_agent_service(self) -> AgentService:
-+        # hf_service = self.create_hf_agent_service()
-+        google_service = self.create_google_agent_service()
-+        # groq = self.create_grok_agent_service()
-+        # deepseek = self.create_deepseek_agent_service()
-+        # openrouter = self.create_openrouter_agent_service()
-@@ -33 +34 @@ class Application:
--            #hf_service,
-+            # hf_service,
-@@ -35,3 +36,3 @@ class Application:
--            #groq,
--            #deepseek,
--            #openrouter,
-+            # groq,
-+            # deepseek,
-+            # openrouter,
-@@ -41 +42 @@ class Application:
--    def create_openrouter_agent_service(role: str, description: str) -> SingleAgentService:
-+    def create_openrouter_agent_service() -> AgentService:
-@@ -48,2 +49,2 @@ class Application:
--            #id="google/gemini-2.0-flash-exp:free",
--            #id="nex-agi/deepseek-v3.1-nex-n1:free",
-+            # id="google/gemini-2.0-flash-exp:free",
-+            # id="nex-agi/deepseek-v3.1-nex-n1:free",
-@@ -55,3 +56,2 @@ class Application:
--        return AgnoAgentService(model=model,
--                                role=role,
--                                description=description)
-+        return FinancialAgnoAgentService(model=model, )
-+
-@@ -59 +59 @@ class Application:
--    def create_deepseek_agent_service(role: str, description: str) -> SingleAgentService:
-+    def create_deepseek_agent_service() -> AgentService:
-@@ -70,3 +70 @@ class Application:
--        return AgnoAgentService(model=model,
--                                role=role,
--                                description=description)
-+        return FinancialAgnoAgentService(model=model, )
-@@ -75 +73 @@ class Application:
--    def create_grok_agent_service(role: str, description: str) -> SingleAgentService:
-+    def create_grok_agent_service() -> AgentService:
-@@ -86,3 +84 @@ class Application:
--        return AgnoAgentService(model=model,
--                                role=role,
--                                description=description)
-+        return FinancialAgnoAgentService(model=model)
-@@ -91 +87 @@ class Application:
--    def create_google_agent_service(role: str, description: str) -> SingleAgentService:
-+    def create_google_agent_service() -> AgentService:
-@@ -98 +94 @@ class Application:
--            id="gemini-3-pro-preview",
-+            id="gemini-3-flash-preview",
-@@ -102,4 +98 @@ class Application:
+@@ -13,9 +13,12 @@ from dotenv import load_dotenv
+ from invesetment_agent.application.port.ai_agent_service import AgentService
+ from invesetment_agent.application.usecases.ticker_summarization_usecase import EquitySummarizationUseCase
+ from invesetment_agent.infrastructure.adapter.agno_agent import FallbackAgnoAgentService, FinancialAgnoAgentService
+-from invesetment_agent.infrastructure.adapter.agno_financial_team import AgnoFinancialAgent, AgnoStylerAgent, \
+-    AgnoFinancialTeam, AgnoNewsSentimentAgent
 -
--        return AgnoAgentService(model=model,
--                                role=role,
--                                description=description)
-+        return AgnoFinancialAgent.from_single_model(model=model)
-@@ -108 +101 @@ class Application:
--    def create_hf_agent_service(role: str, description: str) -> SingleAgentService:
-+    def create_hf_agent_service() -> AgentService:
-@@ -121,3 +114 @@ class Application:
--        return AgnoAgentService(model=model,
--                                role=role,
--                                description=description)
-+        return FinancialAgnoAgentService(model=model)
-@@ -126,4 +117,2 @@ class Application:
--        role = "Investment Analyst"
--        description = "Researches stock prices, analyst recommendations, and stock fundamentals."
--        agent_service = self.create_fallback_agent_service(role=role, description=description)
--        self.stock_summarization_use_case: StockSummarizationUseCase = StockSummarizationUseCase(agent_service)
-+        agent_service = self.create_fallback_agent_service()
-+        self.stock_summarization_use_case: EquitySummarizationUseCase = EquitySummarizationUseCase(agent_service)
++from invesetment_agent.infrastructure.adapter.agno_financial_team import (
++    AgnoFinancialAgent,
++    AgnoFinancialTeam,
++    AgnoNewsSentimentAgent,
++    AgnoStylerAgent,
++)
+
+ load_dotenv(verbose=True)
+
+@@ -32,13 +35,15 @@ class Application:
+         # groq = self.create_grok_agent_service()
+         # deepseek = self.create_deepseek_agent_service()
+         # openrouter = self.create_openrouter_agent_service()
+-        return FallbackAgnoAgentService(agent_services=[
+-            # hf_service,
+-            google_service,
+-            # groq,
+-            # deepseek,
+-            # openrouter,
+-        ])
++        return FallbackAgnoAgentService(
++            agent_services=[
++                # hf_service,
++                google_service,
++                # groq,
++                # deepseek,
++                # openrouter,
++            ]
++        )
+
+     @staticmethod
+     def create_openrouter_agent_service() -> AgentService:
+@@ -52,10 +57,11 @@ class Application:
+             # id="nex-agi/deepseek-v3.1-nex-n1:free",
+             id="google/gemini-2.0-flash-exp:free",
+             api_key=openrouter_api_key,
+-
+         )
+
+-        return FinancialAgnoAgentService(model=model, )
++        return FinancialAgnoAgentService(
++            model=model,
++        )
+
+     @staticmethod
+     def create_deepseek_agent_service() -> AgentService:
+@@ -69,7 +75,9 @@ class Application:
+             api_key=deepseek_api_key,
+         )
+
+-        return FinancialAgnoAgentService(model=model, )
++        return FinancialAgnoAgentService(
++            model=model,
++        )
+
+     @staticmethod
+     def create_grok_agent_service() -> AgentService:
+@@ -82,8 +90,14 @@ class Application:
+             id="llama-3.3-70b-versatile",
+             api_key=grok_api_key,
+         )
+-        AgnoFinancialAgent(model=model)
+-        return AgnoFinancialTeam(model=model)
++        return AgnoFinancialTeam(
++            model=model,
++            agno_agent_services=[
++                AgnoFinancialAgent(model=model),
++                AgnoStylerAgent(model=model),
++                AgnoNewsSentimentAgent(model=model),
++            ],
++        )
+
+     @staticmethod
+     def create_google_agent_service() -> AgentService:
+@@ -117,8 +131,8 @@ class Application:
+             agno_agent_services=[
+                 AgnoFinancialAgent(model=sub_agent_model),
+                 AgnoStylerAgent(model=sub_agent_model),
+-                AgnoNewsSentimentAgent(model=sub_agent_model)
+-            ]
++                AgnoNewsSentimentAgent(model=sub_agent_model),
++            ],
+         )
+         return team
+
+@@ -131,13 +145,11 @@ class Application:
+
+         # Confirm this model id is available and permitted for your token/account
+         model = HuggingFace(
+-            id="deepseek-ai/DeepSeek-V3",
+-            api_key=hf_api_key,
+-            base_url="https://router.huggingface.co/v1"
++            id="deepseek-ai/DeepSeek-V3", api_key=hf_api_key, base_url="https://router.huggingface.co/v1"
+         )
+
+         return FinancialAgnoAgentService(model=model)
+
+-    def __post_init__(self):
+-        agent_service = self.create_fallback_agent_service()
++    def __post_init__(self) -> None:
++        agent_service: AgentService = self.create_fallback_agent_service()
+         self.stock_summarization_use_case: EquitySummarizationUseCase = EquitySummarizationUseCase(agent_service)
 diff --git a/invesetment_agent/infrastructure/slack/app.py b/invesetment_agent/infrastructure/slack/app.py
-index d1287d2..2f95913 100644
+index 085520e..a4e5f0d 100644
 --- a/invesetment_agent/infrastructure/slack/app.py
 +++ b/invesetment_agent/infrastructure/slack/app.py
-@@ -12,2 +12,2 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
--from invesetment_agent.application.dtos.stock_summarization_dtos import SingleStockSummarizationRequest, \
--    MultiStockSummarizationRequest
-+from invesetment_agent.application.dtos.stock_summarization_dtos import SingleEquitySummarizationRequest, \
-+    MultiEquitySummarizationRequest
-@@ -58,2 +58,2 @@ def handle_stock_daily_digest(message, say):
--    invalid_stocks: List[SingleStockSummarizationRequest] = []
--    valid_stocks: List[SingleStockSummarizationRequest] = []
-+    invalid_stocks: List[SingleEquitySummarizationRequest] = []
-+    valid_stocks: List[SingleEquitySummarizationRequest] = []
-@@ -61 +61 @@ def handle_stock_daily_digest(message, say):
--        stock_request = SingleStockSummarizationRequest(symbol)
-+        stock_request = SingleEquitySummarizationRequest(symbol)
-@@ -68 +68 @@ def handle_stock_daily_digest(message, say):
--        say(f"valid symbols: {', '.join([valid_stock.stock for valid_stock in valid_stocks])}",
-+        say(f"valid symbols: {', '.join([valid_stock.equity for valid_stock in valid_stocks])}",
-@@ -78,2 +78,2 @@ def handle_stock_daily_digest(message, say):
--        stock_result = stock_summarization_use_case.execute(MultiStockSummarizationRequest([valid_stock]))
--        say(f"*{valid_stock.stock}*\n{stock_result.value}", thread_ts=thread_ts)
-+        stock_result = stock_summarization_use_case.execute(MultiEquitySummarizationRequest([valid_stock]))
-+        say(f"*{valid_stock.equity}*\n{stock_result.value}", thread_ts=thread_ts)
+@@ -3,14 +3,16 @@ from __future__ import annotations
+ import os
+ import sys
+ from pathlib import Path
+-from typing import List
++from typing import Any
+
+ from dotenv import load_dotenv
+ from slack_bolt import App
+ from slack_bolt.adapter.socket_mode import SocketModeHandler
+
+-from invesetment_agent.application.dtos.stock_summarization_dtos import SingleTickerSummarizationRequest, \
+-    MultiTickerSummarizationRequest
++from invesetment_agent.application.dtos.stock_summarization_dtos import (
++    MultiTickerSummarizationRequest,
++    SingleTickerSummarizationRequest,
++)
+ from invesetment_agent.infrastructure.config.container import Application, create_application
+
+ env_path: Path = Path(__file__).parent / ".env"
+@@ -37,26 +39,26 @@ app = App(token=SLACK_BOT_TOKEN)
+
+
+ @app.event("app_mention")
+-def handle_mention(event, say):
++def handle_mention(event: dict[str, Any], say: Any) -> None:
+     """Respond when bot is mentioned"""
+-    user = event['user']
+-    text = event['text']
++    user = event["user"]
++    text = event["text"]
+
+     # Simple response
+     say(f"Hi <@{user}>! You said: {text}")
+
+
+ @app.message("yaya_stock_daily_digest")
+-def handle_stock_daily_digest(message, say):
++def handle_stock_daily_digest(message: dict[str, Any], say: Any) -> None:
+     """Respond to 'hello' messages"""
+     thread_ts = message["ts"]
+-    say(f"Wait for one sec!", thread_ts=thread_ts)
++    say("Wait for one sec!", thread_ts=thread_ts)
+
+-    text = message.get('text', '')
++    text: str = message.get("text", "")
+     symbols = set(text.split("\n")[0].split()[1:])
+
+-    invalid_stocks: List[SingleTickerSummarizationRequest] = []
+-    valid_stocks: List[SingleTickerSummarizationRequest] = []
++    invalid_stocks: list[SingleTickerSummarizationRequest] = []
++    valid_stocks: list[SingleTickerSummarizationRequest] = []
+     for symbol in symbols:
+         stock_request = SingleTickerSummarizationRequest(symbol)
+         if stock_request.is_valid():
+@@ -65,14 +67,15 @@ def handle_stock_daily_digest(message, say):
+             invalid_stocks.append(stock_request)
+
+     if valid_stocks:
+-        say(f"valid symbols: {', '.join([valid_stock.ticker for valid_stock in valid_stocks])}",
+-            thread_ts=thread_ts)
++        say(f"valid symbols: {', '.join([valid_stock.ticker for valid_stock in valid_stocks])}", thread_ts=thread_ts)
+     else:
+-        say("❌ *No valid stock symbols found!*\n\n*Usage:* `yaya_stock_daily_digest AAPL TSLA MSFT GOOGL AMZN",
+-            thread_ts=thread_ts)
++        say(
++            "❌ *No valid stock symbols found!*\n\n*Usage:* `yaya_stock_daily_digest AAPL TSLA MSFT GOOGL AMZN",
++            thread_ts=thread_ts,
++        )
+
+-    app: Application = create_application()
+-    stock_summarization_use_case = app.stock_summarization_use_case
++    _app: Application = create_application()
++    stock_summarization_use_case = _app.stock_summarization_use_case
+
+     for valid_stock in valid_stocks:
+         stock_result = stock_summarization_use_case.execute(MultiTickerSummarizationRequest([valid_stock]))
+diff --git a/invesetment_agent/infrastructure/utils.py b/invesetment_agent/infrastructure/utils.py
+index e4f8b79..6c97bde 100644
+--- a/invesetment_agent/infrastructure/utils.py
++++ b/invesetment_agent/infrastructure/utils.py
+@@ -1,25 +1,22 @@
+ import json
+ import os
+ import subprocess
+-from typing import Dict
+
+ import boto3  # type: ignore
+-import requests
++import requests  # type: ignore
+
+
+ def is_mlflow_tracking_uri_alive(uri: str) -> bool:
+     try:
+         response = requests.get(uri)
+-        return response.status_code == 200
++        return bool(response.status_code == 200)
+     except requests.RequestException:
+         return False
+
+
+-def run_shell_command(command: str, env: Dict[str, str]) -> str:
++def run_shell_command(command: str, env: dict[str, str]) -> str:
+     try:
+-        result = subprocess.run(
+-            command.split(), capture_output=True, text=True, check=True
+-        )
++        result = subprocess.run(command.split(), capture_output=True, text=True, check=True)
+         return result.stdout
+     except subprocess.CalledProcessError as e:
+         raise e
+@@ -28,15 +25,15 @@ def run_shell_command(command: str, env: Dict[str, str]) -> str:
+ def run_bedrock_access_role_229811874124():
+     home = os.getenv("HOME")
+     return run_shell_command(
+-        command=f"{home}/.toolbox/bin/ada credentials print --provider=conduit --role=BedrockAccessRole --account=229811874124",
++        command=f"{home}/.toolbox/bin/ada credentials "
++        f"print --provider=conduit "
++        f"--role=BedrockAccessRole --account=229811874124",
+         env=os.environ.copy(),
+     )
+
+
+-def set_kb_bedrock_aws_credentials_env_variables():
+-    _env: Dict[str, str] = to_aws_credentials(
+-        ada_credentials=json.loads(run_bedrock_access_role_229811874124())
+-    )
++def set_kb_bedrock_aws_credentials_env_variables() -> None:
++    _env: dict[str, str] = to_aws_credentials(ada_credentials=json.loads(run_bedrock_access_role_229811874124()))
+     os.environ["AWS_ACCESS_KEY_ID"] = _env["aws_access_key_id"]
+     os.environ["AWS_SECRET_ACCESS_KEY"] = _env["aws_secret_access_key"]
+     os.environ["AWS_SESSION_TOKEN"] = _env["aws_session_token"]
+@@ -45,7 +42,7 @@ def set_kb_bedrock_aws_credentials_env_variables():
+     os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
+
+
+-def to_aws_credentials(ada_credentials: Dict[str, str]) -> Dict[str, str]:
++def to_aws_credentials(ada_credentials: dict[str, str]) -> dict[str, str]:
+     required_fields = ["AccessKeyId", "SecretAccessKey", "SessionToken"]
+     for field in required_fields:
+         if field not in ada_credentials:
 diff --git a/invesetment_agent/infrastructure/web/app.py b/invesetment_agent/infrastructure/web/app.py
-index 3d36a9a..6fcd34d 100644
+index 6ace51b..560f2bf 100644
 --- a/invesetment_agent/infrastructure/web/app.py
 +++ b/invesetment_agent/infrastructure/web/app.py
-@@ -3,2 +3,2 @@ import streamlit as st
--from invesetment_agent.application.dtos.stock_summarization_dtos import SingleStockSummarizationRequest, \
--    MultiStockSummarizationRequest
-+from invesetment_agent.application.dtos.stock_summarization_dtos import SingleEquitySummarizationRequest, \
-+    MultiEquitySummarizationRequest
-@@ -29 +29 @@ st.subheader("Analysis Instructions")
--default_request = SingleStockSummarizationRequest("dummy")
-+default_request = SingleEquitySummarizationRequest("dummy")
-@@ -63,2 +63,2 @@ if stocks:
--                        request: SingleStockSummarizationRequest = SingleStockSummarizationRequest(symbol.lower(), instructions)
--                        multi_request = MultiStockSummarizationRequest([request])
-+                        request: SingleEquitySummarizationRequest = SingleEquitySummarizationRequest(symbol.lower(), instructions)
-+                        multi_request = MultiEquitySummarizationRequest([request])
+@@ -1,7 +1,9 @@
+ import streamlit as st
+
+-from invesetment_agent.application.dtos.stock_summarization_dtos import SingleTickerSummarizationRequest, \
+-    MultiTickerSummarizationRequest
++from invesetment_agent.application.dtos.stock_summarization_dtos import (
++    MultiTickerSummarizationRequest,
++    SingleTickerSummarizationRequest,
++)
+ from invesetment_agent.infrastructure.config.container import create_application
+
+ st.set_page_config(layout="wide")
+@@ -10,7 +12,7 @@ st.title("📈 Investment Analysis Dashboard")
+ st.caption("Analyze multiple stocks with comprehensive investment insights")
+
+ # Initialize application
+-if 'app' not in st.session_state:
++if "app" not in st.session_state:
+     st.session_state.app = create_application()
+
+ # Stock input section
+@@ -27,26 +29,19 @@ st.subheader("Analysis Instructions")
+
+ # Get default instructions from DTO
+ default_request = SingleTickerSummarizationRequest("dummy")
+-if 'instruction_count' not in st.session_state:
+-    st.session_state.instruction_count = len(default_request.instructions)
+
+-instructions = []
+ for i in range(st.session_state.instruction_count):
+     default_text = ""
+     height = 30
+-    if i < len(default_request.instructions):
+-        default_text = default_request.instructions[i]
+-        height = (len(default_text.split("\n")) + 1) * height
++    height = (len(default_text.split("\n")) + 1) * height
+
+     instruction = st.text_area(
+         f"Instruction {i + 1}",
+         key=f"instruction_{i}",
+         value=default_text,
+         placeholder="Enter analysis requirement...",
+-        height=height
++        height=height,
+     )
+-    if instruction.strip():
+-        instructions.append(instruction.strip())
+
+ # Collect all non-empty stocks
+ stocks = [s.upper().strip() for s in [stock1, stock2] if s.strip()]
+@@ -56,16 +51,16 @@ if stocks:
+         col1, col2 = st.columns(2)
+
+         for i, symbol in enumerate(stocks):
+-            with (col1 if i == 0 else col2):
++            with col1 if i == 0 else col2:
+                 st.subheader(f"📊 {symbol}")
+                 with st.spinner(f"Analyzing {symbol}..."):
+                     try:
+-                        request: SingleTickerSummarizationRequest = SingleTickerSummarizationRequest(symbol.lower(), instructions)
++                        request: SingleTickerSummarizationRequest = SingleTickerSummarizationRequest(symbol.lower())
+                         multi_request = MultiTickerSummarizationRequest([request])
+                         result = st.session_state.app.stock_summarization_use_case.execute(multi_request)
+-                        content = result.value if hasattr(result, 'value') else str(result)
++                        content = result.value if hasattr(result, "value") else str(result)
+                         st.markdown(content, unsafe_allow_html=True)
+                     except Exception as e:
+-                        st.error(f"Error analyzing {symbol}: {str(e)}")
++                        st.error(f"Error analyzing {symbol}: {e!s}")
+ else:
+     st.info("Enter stock symbols to compare side by side")
+diff --git a/invesetment_agent/infrastructure/web/app2.py b/invesetment_agent/infrastructure/web/app2.py
+index 61f419d..c9a6122 100644
+--- a/invesetment_agent/infrastructure/web/app2.py
++++ b/invesetment_agent/infrastructure/web/app2.py
+@@ -1,16 +1,7 @@
+-import streamlit as st
+-from contextlib import AbstractContextManager
+-from typing import cast
+-
+-st.write("🟢 STREAMLIT PAGE IS WORKING! 🟢")
+-st.title("AI Investment Agent 📈🤖")
+-st.caption("This app allows you to compare the performance of two stocks and generate detailed reports.")
+-
+-st.write("Loading dependencies...")
+-
+ import os
+-import boto3
+
++import boto3
++import streamlit as st
+ from agno.agent import Agent
+ from agno.models.aws import AwsBedrock
+ from agno.run.agent import RunOutput
+@@ -18,6 +9,12 @@ from agno.tools.yfinance import YFinanceTools
+
+ from invesetment_agent.infrastructure.utils import set_kb_bedrock_aws_credentials_env_variables
+
++st.write("🟢 STREAMLIT PAGE IS WORKING! 🟢")
++st.title("AI Investment Agent 📈🤖")
++st.caption("This app allows you to compare the performance of two stocks and generate detailed reports.")
++
++st.write("Loading dependencies...")
++
+ print("Streamlit app is starting...")
+ set_kb_bedrock_aws_credentials_env_variables()
+ aws_access_key = os.getenv("AWS_ACCESS_KEY_ID")
+@@ -48,10 +45,9 @@ assistant = Agent(
+         )
+     ],
+     debug_mode=True,
+-    description="You are an investment analyst that researches stock prices, analyst recommendations, and stock fundamentals.",
+-    instructions=[
+-        "Format your response using markdown and use tables to display data where possible."
+-    ],
++    description="You are an investment analyst that researches stock prices,"
++    " analyst recommendations, and stock fundamentals.",
++    instructions=["Format your response using markdown and use tables to display data where possible."],
+ )
+
+ col1, col2 = st.columns(2)
+@@ -61,7 +57,10 @@ with col2:
+     stock2 = st.text_input("Enter second stock symbol (e.g. MSFT)")
+
+ if stock1 and stock2:
+-    with st.spinner(f"Analyzing {stock1} and {stock2}..."): # ignore
+-        query = f"Compare both the stocks - {stock1} and {stock2} and make a detailed report for an investment trying to invest and compare these stocks"
++    with st.spinner(f"Analyzing {stock1} and {stock2}..."):  # ignore
++        query = (
++            f"Compare both the stocks - {stock1} and {stock2} and "
++            f"make a detailed report for an investment trying to invest and compare these stocks"
++        )
+         response: RunOutput = assistant.run(query, stream=False)
+         st.markdown(response.content)
+diff --git a/invesetment_agent/infrastructure/web/financial_agent_team_app.py b/invesetment_agent/infrastructure/web/financial_agent_team_app.py
+index 3e75eed..512a818 100644
+--- a/invesetment_agent/infrastructure/web/financial_agent_team_app.py
++++ b/invesetment_agent/infrastructure/web/financial_agent_team_app.py
+@@ -1,7 +1,7 @@
+ import os
+
+ import boto3
+-from agno.agent import Agent
++from agno.agent import Agent, RemoteAgent
+ from agno.db.sqlite import SqliteDb
+ from agno.models.aws import AwsBedrock
+ from agno.os import AgentOS
+@@ -26,13 +26,13 @@ boto_session = boto3.Session(**session_kwargs)
+
+ # Setup database for storage
+ db = SqliteDb(db_file="agents.db")
+-model=AwsBedrock(
+-        id="us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+-        aws_region=aws_region,
+-        session=boto_session,
+-        max_tokens=1024,
+-        temperature=0.7,
+-    )
++model = AwsBedrock(
++    id="us.anthropic.claude-3-7-sonnet-20250219-v1:0",
++    aws_region=aws_region,
++    session=boto_session,
++    max_tokens=1024,
++    temperature=0.7,
++)
+ web_agent = Agent(
+     name="Web Agent",
+     role="Search the web for information",
+@@ -47,9 +47,7 @@ finance_agent = Agent(
+     name="Finance Agent",
+     role="Get financial data",
+     model=model,
+-    tools=[
+-        YFinanceTools()
+-    ],
++    tools=[YFinanceTools()],
+     instructions=["Always use tables to display data"],
+     db=db,
+     add_history_to_context=True,
+@@ -64,7 +62,7 @@ agent_team = Team(
+     markdown=True,
+ )
+
+-agent_os = AgentOS(agents=agent_team.members)
++agent_os = AgentOS(agents=[m for m in (agent_team.members or []) if isinstance(m, (Agent, RemoteAgent))])
+ app = agent_os.get_app()
+
+ if __name__ == "__main__":
 diff --git a/pyproject.toml b/pyproject.toml
-index 929e53e..2257a74 100644
+index c49c553..c34273a 100644
 --- a/pyproject.toml
 +++ b/pyproject.toml
-@@ -9,0 +10,2 @@ dependencies = [
-+    "ddgs>=9.10.0",
-+    "fastapi>=0.128.0",
-@@ -12,0 +15,2 @@ dependencies = [
-+    "lxml-html-clean>=0.4.3",
-+    "newspaper4k>=0.9.4.1",
-@@ -15,0 +20 @@ dependencies = [
-+    "sqlalchemy>=2.0.45",
-@@ -17,0 +23 @@ dependencies = [
-+    "uvicorn>=0.40.0",
+@@ -24,3 +24,40 @@ dependencies = [
+     "uvicorn>=0.40.0",
+     "yfinance>=1.0",
+ ]
++
++[tool.ruff]
++# Target version
++target-version = "py311"
++line-length = 120
++
++[tool.ruff.lint]
++# Enable specific rule sets
++select = [
++    "E",   # pycodestyle errors
++    "F",   # Pyflakes (includes unused imports/variables)
++    "I",   # isort (import sorting)
++    "B",   # flake8-bugbear (finds bugs)
++    "UP",  # pyupgrade (modernize code)
++    "RUF", # Ruff-specific rules
++]
++ignore = ["F401"] # Ignore unused imports globally for now to avoid breaking __init__.py exports, or fix selectively
++
++# Allow autofix for all enabled rules (when possible)
++fixable = ["ALL"]
++unfixable = []
++
++[tool.ruff.lint.isort]
++known-first-party = ["invesetment_agent"]
++
++[tool.mypy]
++python_version = "3.11"
++warn_return_any = true
++warn_unused_configs = true
++disallow_untyped_defs = false # Set to true later for stricter checks
++ignore_missing_imports = true
++
++[dependency-groups]
++dev = [
++    "mypy>=1.19.1",
++    "ruff>=0.14.10",
++]
