@@ -50,8 +50,10 @@ class AgnoFinancialTeam(AgnoAgentService):
                 f"   - IF BOND ETF: Use THIS template for Styler: \n{bond_etf_template}",
                 f"   - IF BOND FUND: Use THIS template for Styler: \n{bond_fund_template}",
                 "4. FINAL AUDIT: Verify that Slack_Styler followed the selected template exactly. "
+                "MANDATORY: Every output MUST start with the title: 📡 *Daily [Asset Type] Intelligence: [COMPANY/FUND NAME] ($[TICKER])*. "
                 "CRITICAL: The final output MUST be a plain text message for Slack. "
-                "STRICTLY FORBIDDEN: JSON structures, standard Markdown (like **Bold**), or internal reasoning logs.",
+                "STRICTLY FORBIDDEN: JSON structures, standard Markdown (like **Bold**), or internal reasoning logs. "
+                "DATA AVAILABILITY: If certain metrics are missing, ensure the report still includes all other available data. Do not skip the entire report.",
                 leader_rules,
             ],
             debug_mode=True,
