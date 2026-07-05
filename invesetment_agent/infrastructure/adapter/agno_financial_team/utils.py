@@ -1,4 +1,5 @@
 from pathlib import Path
+
 from agno.tools import tool
 
 
@@ -18,7 +19,8 @@ def get_instruction_content(instruction_name: str) -> str:
     Use this to get the rules or templates for different asset types or agent roles.
 
     Args:
-        instruction_name: The name of the instruction file (e.g., 'styler_stock_instructions.md', 'team_leader_instructions.md').
+        instruction_name: The name of the instruction file
+            (e.g., 'styler_stock_instructions.md', 'team_leader_instructions.md').
 
     Returns:
         The content of the instruction file as a string.

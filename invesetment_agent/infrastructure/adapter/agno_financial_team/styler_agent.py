@@ -8,9 +8,6 @@ from agno.team import Team
 
 from invesetment_agent.application.exceptions import AgentExecutionError
 from invesetment_agent.infrastructure.adapter.agno_financial_team.agno_agent import AgnoAgentService
-from invesetment_agent.infrastructure.adapter.agno_financial_team.utils import current_file_dir, load_instruction
-
-finance_rules = load_instruction(current_file_dir / "instructions" / "finance_agent_instructions.md")
 
 
 class AgnoStylerAgent(AgnoAgentService):

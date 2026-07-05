@@ -25,7 +25,7 @@ class AgnoFinancialTeam(AgnoAgentService):
         return self.team_leader
 
     def __init__(
-            self, agno_agent_services: list[AgnoAgentService], model: Model, db: BaseDb | AsyncBaseDb | None = None
+        self, agno_agent_services: list[AgnoAgentService], model: Model, db: BaseDb | AsyncBaseDb | None = None
     ):
         self.team_leader = Team(
             name="Investment_Team_Leader",
@@ -42,15 +42,18 @@ class AgnoFinancialTeam(AgnoAgentService):
                 "stop and inform the user that the asset type is currently unsupported.",
                 "3. TEMPLATE SELECTION (DYNAMIC LOADING):",
                 "   Use the `get_instruction_content` tool to load the appropriate template for each agent:",
-                "   - IF STOCK: Load 'styler_stock_instructions.md' for Styler AND 'news_sentiment_instructions.md' for News_Sentiment_Agent.",
+                "   - IF STOCK: Load 'styler_stock_instructions.md' for Styler "
+                "AND 'news_sentiment_instructions.md' for News_Sentiment_Agent.",
                 "   - IF EQUITY/MUTUAL/INDEX FUND: Load 'styler_equity_fund_instructions.md' for Styler.",
                 "   - IF BOND ETF: Load 'styler_bond_etf_instructions.md' for Styler.",
                 "   - IF BOND FUND: Load 'styler_bond_fund_instructions.md' for Styler.",
                 "4. FINAL AUDIT: Verify that Slack_Styler followed the selected template exactly. ",
-                "MANDATORY: Every output MUST start with the title: 📡 *Daily [Asset Type] Intelligence: [COMPANY/FUND NAME] ($[TICKER])*. ",
+                "MANDATORY: Every output MUST start with the title: "
+                "📡 *Daily [Asset Type] Intelligence: [COMPANY/FUND NAME] ($[TICKER])*. ",
                 "CRITICAL: The final output MUST be a plain text message for Slack. ",
                 "STRICTLY FORBIDDEN: JSON structures, standard Markdown (like **Bold**), or internal reasoning logs. ",
-                "DATA AVAILABILITY: If certain metrics are missing, ensure the report still includes all other available data. Do not skip the entire report.",
+                "DATA AVAILABILITY: If certain metrics are missing, ensure the report still includes "
+                "all other available data. Do not skip the entire report.",
                 leader_rules,
             ],
             debug_mode=True,

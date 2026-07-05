@@ -2,9 +2,12 @@ import os
 
 from agno.agent import Agent
 from agno.db.sqlite import SqliteDb
+from agno.memory import MemoryManager
 from agno.models.google import Gemini
 from agno.team import Team
 from agno.tools.duckduckgo import DuckDuckGoTools
+from agno.tools.knowledge import KnowledgeTools
+from agno.tools.reasoning import ReasoningTools
 from agno.tools.yfinance import YFinanceTools
 
 # Setup database for storage
@@ -17,6 +20,7 @@ model = Gemini(
     id="gemini-3-pro-preview",
     api_key=google_api_key,
 )
+
 web_agent = Agent(
     name="Web Agent",
     role="Search the web for information",

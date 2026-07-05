@@ -1,4 +1,4 @@
-# Slack Bot Deployment Guide
+ # Slack Bot Deployment Guide
 
 This guide explains how to deploy the Slack bot application to Docker Hub and Render as a free long-running service with CI/CD automation.
 

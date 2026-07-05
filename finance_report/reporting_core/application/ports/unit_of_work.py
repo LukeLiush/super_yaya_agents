@@ -1,0 +1,16 @@
+from typing import Protocol, Type, TypeVar
+
+T = TypeVar("T", )
+
+
+class UnitOfWork(Protocol):
+    def repository(self, repository_type: Type[T]) -> T:
+        ...
+
+    def __enter__(self) -> "UnitOfWork": ...
+
+    def __exit__(self, exc_type, exc_val, exc_tb): ...
+
+    def commit(self) -> None: ...
+
+    def rollback(self) -> None: ...
