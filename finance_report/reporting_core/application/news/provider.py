@@ -1,7 +1,7 @@
 from typing import Protocol, Tuple, Optional
 
-from .dtos import NewsItem
-from ...domain.shared_values import Ticker, Provenance
+from finance_report.reporting_core.application.news.dtos import NewsItem
+from finance_report.reporting_core.domain.shared_values import Ticker, Provenance
 
 
 class NewsProvider(Protocol):

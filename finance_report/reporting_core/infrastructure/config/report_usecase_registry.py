@@ -4,10 +4,10 @@ from typing import Callable, Awaitable, Any
 
 from lagom import Container
 
-from ...application.insider_filling.generate_report import GenerateInsiderReportUseCase
-from ...application.market_data.generate_report import GeneratePriceReportUseCase
-from ...application.news.generate_report import GenerateNewsReportUseCase
-from ....finance_sdk.schemas import ReportType, UnknownReportType
+from finance_report.reporting_core.application.insider_filling.generate_report import GenerateInsiderReportUseCase
+from finance_report.reporting_core.application.market_data.generate_report import GeneratePriceReportUseCase
+from finance_report.reporting_core.application.news.generate_report import GenerateNewsReportUseCase
+from finance_report.finance_sdk.schemas import ReportType, UnknownReportType
 
 
 # report_registry.py

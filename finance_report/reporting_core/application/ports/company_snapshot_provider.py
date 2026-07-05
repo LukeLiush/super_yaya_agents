@@ -4,7 +4,7 @@ from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict
 
-from ...domain.shared_values import Ticker
+from finance_report.reporting_core.domain.shared_values import Ticker
 
 
 class CompanySnapshot(BaseModel):  # or keep CompanyInfo

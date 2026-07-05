@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from ...domain.shared_values import ReportPayload
+from finance_report.reporting_core.domain.shared_values import ReportPayload
 
 
 class ReportSummarizer(Protocol):

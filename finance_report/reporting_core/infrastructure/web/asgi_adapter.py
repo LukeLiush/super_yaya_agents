@@ -2,7 +2,7 @@ from typing import Protocol
 
 from fastapi import FastAPI
 
-from ....finance_sdk.schemas import ReportTriggerRequest, ReportTriggerResponse
+from finance_report.finance_sdk.schemas import ReportTriggerRequest, ReportTriggerResponse
 
 
 class ASGIAdapter(Protocol):

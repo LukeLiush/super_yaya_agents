@@ -3,9 +3,9 @@ import logging
 from fastapi import FastAPI
 from prefect.deployments import run_deployment
 
-from ..config.settings import settings
-from ...infrastructure.web.asgi_adapter import ASGIAdapter
-from ....finance_sdk.schemas import ReportTriggerResponse, ReportTriggerRequest
+from finance_report.reporting_core.infrastructure.config.settings import settings
+from finance_report.reporting_core.infrastructure.web.asgi_adapter import ASGIAdapter
+from finance_report.finance_sdk.schemas import ReportTriggerResponse, ReportTriggerRequest
 
 logger = logging.getLogger(__name__)
 

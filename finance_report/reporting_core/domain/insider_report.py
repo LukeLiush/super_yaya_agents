@@ -1,7 +1,7 @@
 from datetime import date
 
-from .shared_values import Ticker, ReportPayload, ReportId
-from ..application.insider_filling.dtos import InsiderTransaction
+from finance_report.reporting_core.domain.shared_values import Ticker, ReportPayload, ReportId
+from finance_report.reporting_core.application.insider_filling.dtos import InsiderTransaction
 
 
 class InsiderReport(ReportPayload):

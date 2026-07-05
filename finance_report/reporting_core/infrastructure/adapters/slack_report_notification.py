@@ -3,7 +3,7 @@ import logging
 
 from agno.tools.slack import SlackTools
 
-from ...application.ports.report_notification import ReportNotifier, NotificationThread
+from finance_report.reporting_core.application.ports.report_notification import ReportNotifier, NotificationThread
 
 logger = logging.getLogger(__name__)
 

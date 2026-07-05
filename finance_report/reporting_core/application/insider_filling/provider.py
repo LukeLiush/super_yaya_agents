@@ -1,8 +1,8 @@
 from datetime import date
 from typing import Protocol, List, Tuple, Optional
 
-from .dtos import InsiderTransaction
-from ...domain.shared_values import Ticker, Provenance
+from finance_report.reporting_core.application.insider_filling.dtos import InsiderTransaction
+from finance_report.reporting_core.domain.shared_values import Ticker, Provenance
 
 
 class InsiderProvider(Protocol):

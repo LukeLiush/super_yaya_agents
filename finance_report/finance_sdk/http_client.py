@@ -1,7 +1,7 @@
 import httpx
 
-from .contract import FinanceReportService
-from .schemas import ReportTriggerResponse, ReportTriggerRequest
+from finance_report.finance_sdk.contract import FinanceReportService
+from finance_report.finance_sdk.schemas import ReportTriggerResponse, ReportTriggerRequest
 
 
 class HttpFinanceReportClient(FinanceReportService):

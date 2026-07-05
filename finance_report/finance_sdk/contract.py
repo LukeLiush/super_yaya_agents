@@ -1,6 +1,6 @@
 from typing import Protocol, runtime_checkable
 
-from .schemas import ReportTriggerRequest, ReportTriggerResponse
+from finance_report.finance_sdk.schemas import ReportTriggerRequest, ReportTriggerResponse
 
 
 @runtime_checkable

@@ -1,7 +1,7 @@
 from typing import Tuple, Protocol, Optional
 
-from ...domain.price_report import DailyPriceBar
-from ...domain.shared_values import Ticker, SplitEvent, Provenance
+from finance_report.reporting_core.domain.price_report import DailyPriceBar
+from finance_report.reporting_core.domain.shared_values import Ticker, SplitEvent, Provenance
 
 
 class MarketDataProvider(Protocol):

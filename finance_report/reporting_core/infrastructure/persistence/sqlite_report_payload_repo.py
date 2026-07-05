@@ -3,11 +3,11 @@ import logging
 import sqlite3
 from typing import Any, Callable, Dict, Type, Optional, TypeVar
 
-from ...application.ports.report_repository import ReportPayloadRepository
-from ...domain.insider_report import InsiderReport
-from ...domain.news_report import NewsReport
-from ...domain.price_report import PriceReport
-from ...domain.shared_values import ReportPayload
+from finance_report.reporting_core.application.ports.report_repository import ReportPayloadRepository
+from finance_report.reporting_core.domain.insider_report import InsiderReport
+from finance_report.reporting_core.domain.news_report import NewsReport
+from finance_report.reporting_core.domain.price_report import PriceReport
+from finance_report.reporting_core.domain.shared_values import ReportPayload
 
 logger = logging.getLogger(__name__)
 T = TypeVar("T", bound=ReportPayload)

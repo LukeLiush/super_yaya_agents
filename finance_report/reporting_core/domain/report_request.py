@@ -3,9 +3,9 @@ from datetime import datetime, timezone
 
 from pydantic import BaseModel, Field, ConfigDict
 
-from .events import ReportRequested
-from .exceptions import InvalidStateTransition
-from .shared_values import ReportId, ReportStatus, FailureContext, SplitEvent, Ticker
+from finance_report.reporting_core.domain.events import ReportRequested
+from finance_report.reporting_core.domain.exceptions import InvalidStateTransition
+from finance_report.reporting_core.domain.shared_values import ReportId, ReportStatus, FailureContext, SplitEvent, Ticker
 
 
 class ReportRequest(BaseModel):

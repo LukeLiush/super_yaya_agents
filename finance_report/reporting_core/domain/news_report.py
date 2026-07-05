@@ -3,8 +3,8 @@ from typing import Optional, List
 
 from pydantic import model_validator
 
-from .shared_values import ReportPayload, ReportId, Provenance
-from ..application.news.dtos import NewsItem
+from finance_report.reporting_core.domain.shared_values import ReportPayload, ReportId, Provenance
+from finance_report.reporting_core.application.news.dtos import NewsItem
 
 
 class NewsReport(ReportPayload):

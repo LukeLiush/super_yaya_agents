@@ -2,11 +2,11 @@ from typing import Protocol, TypeVar
 
 from pydantic import BaseModel
 
-from ..market_data.provider import SplitProvider
-from ..ports.report_repository import ReportRequestRepository
-from ..ports.unit_of_work import UnitOfWork
-from ...domain.report_request import ReportRequest
-from ...domain.shared_values import Ticker
+from finance_report.reporting_core.application.market_data.provider import SplitProvider
+from finance_report.reporting_core.application.ports.report_repository import ReportRequestRepository
+from finance_report.reporting_core.application.ports.unit_of_work import UnitOfWork
+from finance_report.reporting_core.domain.report_request import ReportRequest
+from finance_report.reporting_core.domain.shared_values import Ticker
 
 TInput = TypeVar("TInput", contravariant=True)
 TOutput = TypeVar("TOutput", covariant=True)

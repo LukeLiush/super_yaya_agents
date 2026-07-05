@@ -1,8 +1,8 @@
 from typing import Optional
 from pydantic import BaseModel
-from ...domain.price_report import PriceReport
-from ...domain.news_report import NewsReport
-from ...domain.insider_report import InsiderReport
+from finance_report.reporting_core.domain.price_report import PriceReport
+from finance_report.reporting_core.domain.news_report import NewsReport
+from finance_report.reporting_core.domain.insider_report import InsiderReport
 
 class CompanyFinanceReport(BaseModel):
     ticker: str

@@ -7,9 +7,9 @@ import pandas as pd
 import yfinance as yf
 from tenacity import Retrying, stop_after_attempt, wait_exponential
 
-from ...application.market_data.provider import MarketDataProvider, SplitProvider
-from ...domain.price_report import PriceReport, Window, DailyPriceBar
-from ...domain.shared_values import Ticker, SplitEvent, Provenance
+from finance_report.reporting_core.application.market_data.provider import MarketDataProvider, SplitProvider
+from finance_report.reporting_core.domain.price_report import PriceReport, Window, DailyPriceBar
+from finance_report.reporting_core.domain.shared_values import Ticker, SplitEvent, Provenance
 
 logger = logging.getLogger(__name__)
 

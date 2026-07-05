@@ -6,34 +6,34 @@ from inngest import PydanticSerializer
 from lagom import Container, Singleton
 from tenacity import Retrying, stop_after_attempt, wait_exponential
 
-from .report_usecase_registry import ReportRegistry
-from .settings import settings
-from ..adapters.agno_report_transformation_adapter import AgnoReportSummarizer
-from ..adapters.edgar_insider_adapter import EdgarInsiderAdapter
-from ..adapters.slack_report_notification import SlackReportNotifier
-from ..adapters.yfinance_company_snapshot_provider import YFinanceCompanySnapshotProvider
-from ..adapters.yfinance_news_adapter import YfinanceNewsAdapter
-from ..adapters.yfinance_price_adapter import YFinanceMarketDataAdapter, YFinanceSplitAdapter
-from ..flows.inngest_finance_report_service import InngestFinanceReportService
-from ..persistence.sqlite_report_payload_repo import SqliteReportPayloadRepository
-from ..persistence.sqlite_report_request_repo import SqliteReportRequestRepository
-from ..persistence.sqlite_uow import SqliteUnitOfWork
-from ..web.asgi_adapter import ASGIAdapter
-from ..web.inngest_asgi import InngestASGI
-from ..web.prefect_asgi import PrefectASGI
-from ...application.insider_filling.generate_report import GenerateInsiderReportUseCase
-from ...application.insider_filling.provider import InsiderProvider
-from ...application.market_data.generate_report import GeneratePriceReportUseCase
-from ...application.market_data.provider import MarketDataProvider, SplitProvider
-from ...application.news.generate_report import GenerateNewsReportUseCase
-from ...application.news.provider import NewsProvider
-from ...application.ports.company_snapshot_provider import CompanySnapshotProvider
-from ...application.ports.report_notification import ReportNotifier
-from ...application.ports.report_repository import ReportPayloadRepository, ReportRequestRepository
-from ...application.ports.report_summarization import ReportSummarizer
-from ...application.ports.unit_of_work import UnitOfWork
-from ...application.use_cases.create_report_request import CreateReportRequestUseCase
-from ...domain.price_report import Window
+from finance_report.reporting_core.infrastructure.config.report_usecase_registry import ReportRegistry
+from finance_report.reporting_core.infrastructure.config.settings import settings
+from finance_report.reporting_core.infrastructure.adapters.agno_report_transformation_adapter import AgnoReportSummarizer
+from finance_report.reporting_core.infrastructure.adapters.edgar_insider_adapter import EdgarInsiderAdapter
+from finance_report.reporting_core.infrastructure.adapters.slack_report_notification import SlackReportNotifier
+from finance_report.reporting_core.infrastructure.adapters.yfinance_company_snapshot_provider import YFinanceCompanySnapshotProvider
+from finance_report.reporting_core.infrastructure.adapters.yfinance_news_adapter import YfinanceNewsAdapter
+from finance_report.reporting_core.infrastructure.adapters.yfinance_price_adapter import YFinanceMarketDataAdapter, YFinanceSplitAdapter
+from finance_report.reporting_core.infrastructure.flows.inngest_finance_report_service import InngestFinanceReportService
+from finance_report.reporting_core.infrastructure.persistence.sqlite_report_payload_repo import SqliteReportPayloadRepository
+from finance_report.reporting_core.infrastructure.persistence.sqlite_report_request_repo import SqliteReportRequestRepository
+from finance_report.reporting_core.infrastructure.persistence.sqlite_uow import SqliteUnitOfWork
+from finance_report.reporting_core.infrastructure.web.asgi_adapter import ASGIAdapter
+from finance_report.reporting_core.infrastructure.web.inngest_asgi import InngestASGI
+from finance_report.reporting_core.infrastructure.web.prefect_asgi import PrefectASGI
+from finance_report.reporting_core.application.insider_filling.generate_report import GenerateInsiderReportUseCase
+from finance_report.reporting_core.application.insider_filling.provider import InsiderProvider
+from finance_report.reporting_core.application.market_data.generate_report import GeneratePriceReportUseCase
+from finance_report.reporting_core.application.market_data.provider import MarketDataProvider, SplitProvider
+from finance_report.reporting_core.application.news.generate_report import GenerateNewsReportUseCase
+from finance_report.reporting_core.application.news.provider import NewsProvider
+from finance_report.reporting_core.application.ports.company_snapshot_provider import CompanySnapshotProvider
+from finance_report.reporting_core.application.ports.report_notification import ReportNotifier
+from finance_report.reporting_core.application.ports.report_repository import ReportPayloadRepository, ReportRequestRepository
+from finance_report.reporting_core.application.ports.report_summarization import ReportSummarizer
+from finance_report.reporting_core.application.ports.unit_of_work import UnitOfWork
+from finance_report.reporting_core.application.use_cases.create_report_request import CreateReportRequestUseCase
+from finance_report.reporting_core.domain.price_report import Window
 
 container: Container = Container()
 

@@ -3,7 +3,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import Tuple, List, Optional
 
-from .shared_values import ValueObject, ReportId, ReportPayload, Provenance
+from finance_report.reporting_core.domain.shared_values import ValueObject, ReportId, ReportPayload, Provenance
 
 
 class WindowUnit(str, Enum):

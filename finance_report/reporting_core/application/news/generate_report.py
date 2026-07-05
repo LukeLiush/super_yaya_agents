@@ -1,12 +1,12 @@
 from typing import Optional
 
-from .provider import NewsProvider
-from ..ports.report_repository import ReportPayloadRepository
-from ..ports.unit_of_work import UnitOfWork
-from ..use_cases.create_report_request import UseCase
-from ...domain.events import ReportRequested
-from ...domain.news_report import NewsReport
-from ...domain.shared_values import Ticker
+from finance_report.reporting_core.application.news.provider import NewsProvider
+from finance_report.reporting_core.application.ports.report_repository import ReportPayloadRepository
+from finance_report.reporting_core.application.ports.unit_of_work import UnitOfWork
+from finance_report.reporting_core.application.use_cases.create_report_request import UseCase
+from finance_report.reporting_core.domain.events import ReportRequested
+from finance_report.reporting_core.domain.news_report import NewsReport
+from finance_report.reporting_core.domain.shared_values import Ticker
 
 
 class GenerateNewsReportUseCase(UseCase[ReportRequested, Optional[NewsReport]]):

@@ -1,5 +1,5 @@
 from datetime import datetime
-from ...domain.shared_values import ValueObject
+from finance_report.reporting_core.domain.shared_values import ValueObject
 
 class NewsItem(ValueObject):
     headline: str

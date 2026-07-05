@@ -1,7 +1,7 @@
 import sqlite3
 from typing import Callable, Type, Dict, TypeVar
 
-from ...application.ports.unit_of_work import UnitOfWork
+from finance_report.reporting_core.application.ports.unit_of_work import UnitOfWork
 
 T = TypeVar("T")
 

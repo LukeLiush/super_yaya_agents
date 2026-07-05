@@ -8,8 +8,8 @@ from typing import Protocol
 
 import yfinance as yf
 
-from ...application.ports.company_snapshot_provider import CompanySnapshotProvider, CompanySnapshot
-from ...domain.shared_values import Ticker
+from finance_report.reporting_core.application.ports.company_snapshot_provider import CompanySnapshotProvider, CompanySnapshot
+from finance_report.reporting_core.domain.shared_values import Ticker
 
 
 class CompanyInfoUnavailable(RuntimeError):

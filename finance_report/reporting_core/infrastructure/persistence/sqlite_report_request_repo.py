@@ -2,9 +2,9 @@ import json
 import sqlite3
 from typing import Optional
 
-from ...application.ports.report_repository import ReportRequestRepository
-from ...domain.report_request import ReportRequest
-from ...domain.shared_values import ReportId, Ticker
+from finance_report.reporting_core.application.ports.report_repository import ReportRequestRepository
+from finance_report.reporting_core.domain.report_request import ReportRequest
+from finance_report.reporting_core.domain.shared_values import ReportId, Ticker
 
 
 class SqliteReportRequestRepository(ReportRequestRepository):

@@ -1,7 +1,7 @@
 from typing import Protocol, TypeVar, runtime_checkable, Optional, Type
 
-from ...domain.report_request import ReportRequest
-from ...domain.shared_values import ReportPayload, ReportId
+from finance_report.reporting_core.domain.report_request import ReportRequest
+from finance_report.reporting_core.domain.shared_values import ReportPayload, ReportId
 
 T = TypeVar("T", bound=ReportPayload)
 

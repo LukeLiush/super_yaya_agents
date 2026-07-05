@@ -11,9 +11,9 @@ from edgar.entity import EntityFilings
 from edgar.ownership import Form4
 from tenacity import Retrying, stop_after_attempt, wait_exponential, before_sleep_log
 
-from ...application.insider_filling.dtos import InsiderTransaction
-from ...application.insider_filling.provider import InsiderProvider
-from ...domain.shared_values import Ticker, Provenance
+from finance_report.reporting_core.application.insider_filling.dtos import InsiderTransaction
+from finance_report.reporting_core.application.insider_filling.provider import InsiderProvider
+from finance_report.reporting_core.domain.shared_values import Ticker, Provenance
 
 logger = logging.getLogger(__name__)
 

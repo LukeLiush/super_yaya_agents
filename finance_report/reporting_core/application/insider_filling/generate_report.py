@@ -1,12 +1,12 @@
 import datetime as dt
 from datetime import datetime
 
-from .provider import InsiderProvider
-from ..ports.report_repository import ReportPayloadRepository
-from ..ports.unit_of_work import UnitOfWork
-from ..use_cases.create_report_request import UseCase
-from ...domain.events import ReportRequested
-from ...domain.insider_report import InsiderReport
+from finance_report.reporting_core.application.insider_filling.provider import InsiderProvider
+from finance_report.reporting_core.application.ports.report_repository import ReportPayloadRepository
+from finance_report.reporting_core.application.ports.unit_of_work import UnitOfWork
+from finance_report.reporting_core.application.use_cases.create_report_request import UseCase
+from finance_report.reporting_core.domain.events import ReportRequested
+from finance_report.reporting_core.domain.insider_report import InsiderReport
 
 
 class GenerateInsiderReportUseCase(UseCase[ReportRequested, InsiderReport]):

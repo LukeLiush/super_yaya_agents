@@ -8,8 +8,8 @@ from pydantic import BaseModel, ConfigDict, field_validator
 from tenacity import stop_after_attempt, Retrying, wait_exponential, before_sleep_log
 
 from finance_report.reporting_core.application.news.provider import NewsProvider
-from ...application.news.dtos import NewsItem
-from ...domain.shared_values import Ticker, Provenance
+from finance_report.reporting_core.application.news.dtos import NewsItem
+from finance_report.reporting_core.domain.shared_values import Ticker, Provenance
 
 logger = logging.getLogger(__name__)
 

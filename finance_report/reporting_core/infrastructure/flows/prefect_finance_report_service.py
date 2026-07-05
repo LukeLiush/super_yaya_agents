@@ -6,17 +6,17 @@ from zoneinfo import ZoneInfo
 
 from prefect import task, flow
 
-from .prefect_utils import run_name_from
-from ..config.report_usecase_registry import ReportRegistry, ReportHandler
-from ...application.ports.company_snapshot_provider import CompanySnapshotProvider, CompanySnapshot
-from ...application.ports.report_notification import ReportNotifier, NotificationThread
-from ...application.ports.report_summarization import ReportSummarizer
-from ...application.use_cases.create_report_request import CreateReportRequestUseCase, CreateRequestInput
-from ...domain.events import ReportRequested
-from ...domain.report_request import ReportRequest
-from ...domain.shared_values import Ticker, ReportPayload
-from ...infrastructure.flows.inngest_finance_report_service import ReportRunResult
-from ....finance_sdk.schemas import ReportTriggerRequest, ReportType
+from finance_report.reporting_core.infrastructure.flows.prefect_utils import run_name_from
+from finance_report.reporting_core.infrastructure.config.report_usecase_registry import ReportRegistry, ReportHandler
+from finance_report.reporting_core.application.ports.company_snapshot_provider import CompanySnapshotProvider, CompanySnapshot
+from finance_report.reporting_core.application.ports.report_notification import ReportNotifier, NotificationThread
+from finance_report.reporting_core.application.ports.report_summarization import ReportSummarizer
+from finance_report.reporting_core.application.use_cases.create_report_request import CreateReportRequestUseCase, CreateRequestInput
+from finance_report.reporting_core.domain.events import ReportRequested
+from finance_report.reporting_core.domain.report_request import ReportRequest
+from finance_report.reporting_core.domain.shared_values import Ticker, ReportPayload
+from finance_report.reporting_core.infrastructure.flows.inngest_finance_report_service import ReportRunResult
+from finance_report.finance_sdk.schemas import ReportTriggerRequest, ReportType
 
 logger = logging.getLogger(__name__)
 
