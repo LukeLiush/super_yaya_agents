@@ -4,7 +4,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from pydantic import Field
-from pydantic_settings import SettingsConfigDict, BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Orchestrator(str, Enum):
@@ -23,15 +23,13 @@ class Settings(BaseSettings):
     prefect_deployment_name: str = Field(alias="PREFECT_DEPLOYMENT_NAME", default="finance-report")
     prefect_server_url: str = Field(alias="PREFECT_SERVER_URL", default="http://localhost:4200")
     prefect_api_url: str = Field(alias="PREFECT_API_URL", default="http://localhost:4200/api")
-    #inngest_api_key: str = Field(alias="INNGEST_API_KEY")
-    inngest_base_url: str = Field(
-        alias="INNGEST_BASE_URL", default="https://api.inngest.com/v1"
-    )
+    # inngest_api_key: str = Field(alias="INNGEST_API_KEY")
+    inngest_base_url: str = Field(alias="INNGEST_BASE_URL", default="https://api.inngest.com/v1")
     dashscope_api_key: str = Field(alias="DASHSCOPE_API_KEY")
     dashscope_base_url: str = Field(alias="QWEN_BASE_URL", default="https://dashscope.aliyuncs.com/compatible-mode/v1")
-    is_production: bool = Field(alias="INNGEST_IS_PRODUCTION",
-                                default=False,
-                                description="Whether the app is running in production mode")
+    is_production: bool = Field(
+        alias="INNGEST_IS_PRODUCTION", default=False, description="Whether the app is running in production mode"
+    )
     slack_bot_token: str = Field(alias="SLACK_BOT_TOKEN")  # required, no default
     slack_channel_id: str = Field(alias="SLACK_CHANNEL_ID", default="#super-yaya")
 

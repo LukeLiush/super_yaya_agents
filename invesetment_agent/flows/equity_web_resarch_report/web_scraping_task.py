@@ -4,14 +4,14 @@ import tempfile
 import webbrowser
 from pathlib import Path
 
-from prefect import task, get_run_logger, flow
+from prefect import flow, get_run_logger, task
 from prefect.cache_policies import DEFAULT
 from pydantic import BaseModel
-from scrapling import StealthyFetcher, DynamicFetcher, Fetcher, TextHandler
+from scrapling import DynamicFetcher, Fetcher, StealthyFetcher, TextHandler
 from scrapling.engines.toolbelt.custom import Response
+from web_search_task import SearchResult
 
 from invesetment_agent.flows.equity_web_resarch_report.naming import run_name_from
-from web_search_task import SearchResult
 
 
 class HtmlSearchResult(BaseModel):
@@ -36,10 +36,15 @@ async def scrape(url: str, mode: str = "static") -> Response:
         return page
     if mode == "dynamic":
         return await asyncio.to_thread(
-            DynamicFetcher.fetch, url, headless=True, network_idle=True,
+            DynamicFetcher.fetch,
+            url,
+            headless=True,
+            network_idle=True,
         )
     return await asyncio.to_thread(
-        Fetcher.get, url, allow_redirects=True,
+        Fetcher.get,
+        url,
+        allow_redirects=True,
     )
 
 
@@ -50,7 +55,7 @@ async def _is_good_enough(page: Response) -> bool:
 
     # NEW: Check for 404 or other permanent failures
     # Assuming the Response object has a status_code attribute
-    if getattr(page, 'status_code', None) == 404:
+    if getattr(page, "status_code", None) == 404:
         return False
 
     text = str(page.get_all_text() or "").strip()
@@ -59,7 +64,9 @@ async def _is_good_enough(page: Response) -> bool:
         "enable javascript",
         "captcha",
         "are you a robot",
-        "verify you are human", "access denied", "checking your browser",
+        "verify you are human",
+        "access denied",
+        "checking your browser",
         "please turn on javascript",
     )
     return not any(b in lowered for b in blockers)
@@ -91,14 +98,14 @@ async def scrape_auto(url: str) -> tuple[Response, str]:
 
 
 @task(
-    task_run_name=run_name_from(lambda p: f"{p['query_result'].url}",
-                                prefix="scrape"),
+    task_run_name=run_name_from(lambda p: f"{p['query_result'].url}", prefix="scrape"),
     log_prints=True,
     cache_policy=DEFAULT,
     persist_result=True,
     retries=3,
     retry_delay_seconds=[10.0, 30.0, 60.0],
-    timeout_seconds=600.0, )
+    timeout_seconds=600.0,
+)
 async def web_scrapping_task(query_result: SearchResult) -> HtmlSearchResult:
     logger = get_run_logger()
 
@@ -116,8 +123,7 @@ async def web_scrapping_task(query_result: SearchResult) -> HtmlSearchResult:
 
         # Check if it was a 404 or just bad content
         if not await _is_good_enough(page):
-            logger.warning("Scrape finished for %s but content is poor/blocked (Mode: %s)", query_result.url,
-                           mode_used)
+            logger.warning("Scrape finished for %s but content is poor/blocked (Mode: %s)", query_result.url, mode_used)
             # You still return it so the flow doesn't crash,
             # but the LLM will just see empty/minimal text.
 
@@ -126,8 +132,13 @@ async def web_scrapping_task(query_result: SearchResult) -> HtmlSearchResult:
 
         # 3. Robust logging of results and content length
         content_len = len(str(html))
-        logger.info("Successfully scraped URL: %s (HTML length: %d, Text length: %d) with mode: %s",
-                    query_result.url, content_len, len(str(text_content)), mode_used)
+        logger.info(
+            "Successfully scraped URL: %s (HTML length: %d, Text length: %d) with mode: %s",
+            query_result.url,
+            content_len,
+            len(str(text_content)),
+            mode_used,
+        )
         # 4. Preview the structure
         # soup = BeautifulSoup(str(html), "html.parser")
         # pretty: Union[str | bytes] = soup.prettify()
@@ -160,7 +171,7 @@ async def web_scrapping_task(query_result: SearchResult) -> HtmlSearchResult:
 @task
 def debug_html_locally(html_content: str):
     # Create a temporary file
-    with tempfile.NamedTemporaryFile('w', delete=False, suffix='.html') as f:
+    with tempfile.NamedTemporaryFile("w", delete=False, suffix=".html") as f:
         f.write(html_content)
         file_path = Path(f.name).absolute()
 
@@ -171,11 +182,16 @@ def debug_html_locally(html_content: str):
 
 @flow
 async def test_webscraping_flow():
-    future = web_scrapping_task.submit(SearchResult(
-        title="TSLA Stock Quote Price and Forecast | CNN",
-        snippet="13 hours ago · View Tesla, Inc. TSLA stock quote prices, financial information, real-time forecasts, and company news from CNN ",
-        url="https://www.cnn.com/markets/stocks/TSLA"
-    ))
+    future = web_scrapping_task.submit(
+        SearchResult(
+            title="TSLA Stock Quote Price and Forecast | CNN",
+            snippet=(
+                "13 hours ago · View Tesla, Inc. TSLA stock quote prices, financial information, "
+                "real-time forecasts, and company news from CNN "
+            ),
+            url="https://www.cnn.com/markets/stocks/TSLA",
+        )
+    )
     # Correctly retrieve the result
     result = future.result()
     # if asyncio.iscoroutine(result):

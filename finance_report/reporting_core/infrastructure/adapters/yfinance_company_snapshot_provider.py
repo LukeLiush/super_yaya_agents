@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
+from collections.abc import Callable
+from datetime import UTC, datetime, timezone
 from decimal import Decimal
-from typing import Callable, Optional
-from typing import Protocol
+from typing import Optional, Protocol
 
 import yfinance as yf
 
-from finance_report.reporting_core.application.ports.company_snapshot_provider import CompanySnapshotProvider, CompanySnapshot
+from finance_report.reporting_core.application.ports.company_snapshot_provider import (
+    CompanySnapshot,
+    CompanySnapshotProvider,
+)
 from finance_report.reporting_core.domain.shared_values import Ticker
 
 
@@ -25,7 +28,7 @@ class QuoteHandle(Protocol):
 
 
 class YFinanceCompanySnapshotProvider(CompanySnapshotProvider):
-    def __init__(self, ticker_factory: Optional[Callable[[str], QuoteHandle]] = None):
+    def __init__(self, ticker_factory: Callable[[str], QuoteHandle] | None = None):
         self._make = ticker_factory or (lambda s: yf.Ticker(s))
 
     async def fetch(self, ticker: Ticker) -> CompanySnapshot:
@@ -38,7 +41,7 @@ class YFinanceCompanySnapshotProvider(CompanySnapshotProvider):
             name=self._resolve_name(yf_ticker, symbol),
             ticker=ticker,
             last_price=self._resolve_price(yf_ticker, symbol),
-            fetched_at=datetime.now(timezone.utc),
+            fetched_at=datetime.now(UTC),
         )
 
     @staticmethod

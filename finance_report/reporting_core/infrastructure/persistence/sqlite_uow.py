@@ -1,5 +1,6 @@
 import sqlite3
-from typing import Callable, Type, Dict, TypeVar
+from collections.abc import Callable
+from typing import TypeVar
 
 from finance_report.reporting_core.application.ports.unit_of_work import UnitOfWork
 
@@ -7,13 +8,13 @@ T = TypeVar("T")
 
 
 class SqliteUnitOfWork(UnitOfWork):
-    def __init__(self, repository_factories: Dict[Type, Callable[[sqlite3.Connection], T]], db_path=":memory:"):
-        self._repository_factories: Dict[Type, Callable[[sqlite3.Connection], T]] = repository_factories
-        self._repositories: Dict[Type, T] = {}
+    def __init__(self, repository_factories: dict[type, Callable[[sqlite3.Connection], T]], db_path=":memory:"):
+        self._repository_factories: dict[type, Callable[[sqlite3.Connection], T]] = repository_factories
+        self._repositories: dict[type, T] = {}
         self._connection = None
         self._db_path = db_path
 
-    def repository(self, repository_type: Type[T]) -> T:
+    def repository(self, repository_type: type[T]) -> T:
         if self._connection is None:
             raise RuntimeError("UnitOfWork not initialized. Use 'with uow:' block.")
 

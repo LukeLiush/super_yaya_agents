@@ -2,15 +2,16 @@ import asyncio
 import logging
 import os
 from pathlib import Path
-from typing import List
 
 from agno.tools.slack import SlackTools
 from dotenv import load_dotenv
 from edgar import set_identity
 from prefect import flow, get_run_logger
 
-from invesetment_agent.flows.equity_daily_report.synthesize_slack_report import synthesize_slack_report_task, \
-    SlackReportPayload
+from invesetment_agent.flows.equity_daily_report.synthesize_slack_report import (
+    SlackReportPayload,
+    synthesize_slack_report_task,
+)
 
 
 def init(logger: logging.Logger):
@@ -25,7 +26,7 @@ def init(logger: logging.Logger):
 
 
 @flow
-async def build_flow(tickers: List[str]):
+async def build_flow(tickers: list[str]):
     logger: logging.Logger = get_run_logger()
     init(logger)
     logger.info("Starting build_flow with tickers: %s", tickers)
@@ -34,12 +35,20 @@ async def build_flow(tickers: List[str]):
         raise ValueError("SLACK_BOT_TOKEN not set in environment")
     slack_tools = SlackTools(token=slack_bot_token)
 
-    futures = [synthesize_slack_report_task.submit(ticker=ticker, slack_tools=slack_tools, slack_channel="#super-yaya")
-               for ticker in tickers]
-    results = [future.result() for future in futures ]
+    futures = [
+        synthesize_slack_report_task.submit(ticker=ticker, slack_tools=slack_tools, slack_channel="#super-yaya")
+        for ticker in tickers
+    ]
+    for future in futures:
+        future.result()
+
 
 if __name__ == "__main__":
-    asyncio.run(build_flow(tickers=[
-        # "TSLA",
-        "AMZN"
-    ]))
+    asyncio.run(
+        build_flow(
+            tickers=[
+                # "TSLA",
+                "AMZN"
+            ]
+        )
+    )

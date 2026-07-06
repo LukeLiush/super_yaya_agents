@@ -1,11 +1,12 @@
-from typing import Protocol, Type, TypeVar
+from typing import Protocol, TypeVar
 
-T = TypeVar("T", )
+T = TypeVar(
+    "T",
+)
 
 
 class UnitOfWork(Protocol):
-    def repository(self, repository_type: Type[T]) -> T:
-        ...
+    def repository(self, repository_type: type[T]) -> T: ...
 
     def __enter__(self) -> "UnitOfWork": ...
 

@@ -1,15 +1,13 @@
 import logging
-from datetime import datetime
-from datetime import timezone
-from typing import Tuple, Optional
+from datetime import UTC, datetime
 
 import yfinance as yf
 from pydantic import BaseModel, ConfigDict, field_validator
-from tenacity import stop_after_attempt, Retrying, wait_exponential, before_sleep_log
+from tenacity import Retrying, before_sleep_log, stop_after_attempt, wait_exponential
 
-from finance_report.reporting_core.application.news.provider import NewsProvider
 from finance_report.reporting_core.application.news.dtos import NewsItem
-from finance_report.reporting_core.domain.shared_values import Ticker, Provenance
+from finance_report.reporting_core.application.news.provider import NewsProvider
+from finance_report.reporting_core.domain.shared_values import Provenance, Ticker
 
 logger = logging.getLogger(__name__)
 
@@ -55,8 +53,7 @@ class _YFNewsRaw(BaseModel):
 
     def to_news_item(self) -> NewsItem | None:
         c = self.content
-        url = (c.canonicalUrl.url if c.canonicalUrl else None) \
-              or (c.clickThroughUrl.url if c.clickThroughUrl else None)
+        url = (c.canonicalUrl.url if c.canonicalUrl else None) or (c.clickThroughUrl.url if c.clickThroughUrl else None)
         published_at = c.pubDate or c.displayTime
         publisher = c.provider.displayName if c.provider else None
 
@@ -74,7 +71,7 @@ class _YFNewsRaw(BaseModel):
 
 
 class YfinanceNewsAdapter(NewsProvider):
-    def __init__(self, retrying: Optional[Retrying] = None, count_of_news=10):
+    def __init__(self, retrying: Retrying | None = None, count_of_news=10):
         self._retrying = retrying or Retrying(
             stop=stop_after_attempt(3),
             wait=wait_exponential(multiplier=1, min=2, max=10),
@@ -83,18 +80,22 @@ class YfinanceNewsAdapter(NewsProvider):
         )
         self._count_of_news = count_of_news
 
-    def _fetch(self, symbol: str, ) -> Tuple[list, Provenance]:
-
+    def _fetch(
+        self,
+        symbol: str,
+    ) -> tuple[list, Provenance]:
         raws: list = yf.Ticker(symbol).get_news(count=self._count_of_news, tab="news")
         if raws is None or len(raws) == 0:
             raise ValueError(f"Yfinance returned no news for {symbol}")
-        provenance = Provenance(source=yf.__name__,
-                                query=f"yf.Ticker(\"{symbol}\").get_news(\"{self._count_of_news}\")",
-                                queried_at=datetime.now(timezone.utc),
-                                source_version=yf.__version__)
+        provenance = Provenance(
+            source=yf.__name__,
+            query=f'yf.Ticker("{symbol}").get_news("{self._count_of_news}")',
+            queried_at=datetime.now(UTC),
+            source_version=yf.__version__,
+        )
         return raws, provenance
 
-    def fetch_latest_news(self, ticker: Ticker) -> Tuple[list[NewsItem], Optional[Provenance]]:
+    def fetch_latest_news(self, ticker: Ticker) -> tuple[list[NewsItem], Provenance | None]:
         raws, provenance = self._retrying(self._fetch, ticker.symbol)
         news_items = []
         for raw in raws:

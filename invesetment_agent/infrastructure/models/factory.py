@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable, Optional
+from typing import Optional
 
 from prefect.blocks.system import Secret
 
@@ -13,6 +14,7 @@ from invesetment_agent.application.port.model_provider import ModelProvider
 class _ProviderSpec:
     """Bundles everything that must stay consistent for one provider:
     how to recognize its models, which secret holds its key, and how to build it."""
+
     name: str
     matches: Callable[[str], bool]
     secret_name: str  # Prefect Secret block name
@@ -22,14 +24,17 @@ class _ProviderSpec:
 
 # --- Provider builders: the ONLY place pydantic-ai providers are imported ---
 
+
 def _build_pydantic_ai_google(model_name: str, api_key: str) -> object:
     from pydantic_ai.models.google import GoogleModel
     from pydantic_ai.providers.google import GoogleProvider
+
     return GoogleModel(model_name.split("pydantic:")[1].replace("-lite", ""), provider=GoogleProvider(api_key=api_key))
 
 
 def _build_agno_google(model_name: str, api_key: str) -> object:
     from agno.models.google import Gemini
+
     # Map model names if necessary, e.g., 'gemini-1.5-flash'
     return Gemini(id=model_name.split("agno:")[1], api_key=api_key)
 
@@ -78,18 +83,11 @@ class ConfiguredModelProvider(ModelProvider):
             if spec.matches(model_name):
                 return spec
         supported = ", ".join(s.name for s in _PROVIDERS)
-        raise ValueError(
-            f"Unsupported model: {model_name!r}. "
-            f"No provider matches it (known providers: {supported})."
-        )
+        raise ValueError(f"Unsupported model: {model_name!r}. No provider matches it (known providers: {supported}).")
 
     def _load_key(self, spec: _ProviderSpec) -> str:
         # try the two sources in the configured order
-        sources = (
-            [self._from_env, self._from_secret]
-            if self._prefer_env_first
-            else [self._from_secret, self._from_env]
-        )
+        sources = [self._from_env, self._from_secret] if self._prefer_env_first else [self._from_secret, self._from_env]
         for source in sources:
             key = source(spec)
             if key:
@@ -100,12 +98,12 @@ class ConfiguredModelProvider(ModelProvider):
         )
 
     @staticmethod
-    def _from_secret(spec: _ProviderSpec) -> Optional[str]:
+    def _from_secret(spec: _ProviderSpec) -> str | None:
         try:
             return Secret.load(spec.secret_name).get()
         except Exception:
             return None  # block missing / no server reachable -> fall back
 
     @staticmethod
-    def _from_env(spec: _ProviderSpec) -> Optional[str]:
+    def _from_env(spec: _ProviderSpec) -> str | None:
         return os.environ.get(spec.env_var)

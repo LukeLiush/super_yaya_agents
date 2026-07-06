@@ -1,13 +1,13 @@
-from typing import List, Literal
+from typing import Literal
 
-from prefect import task, get_run_logger
+from prefect import get_run_logger, task
 from prefect.cache_policies import DEFAULT
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 from pydantic_ai.durable_exec.prefect import PrefectAgent, TaskConfig
 
-from invesetment_agent.infrastructure.models.factory import ConfiguredModelProvider
 from invesetment_agent.flows.equity_web_resarch_report.naming import run_name_from
+from invesetment_agent.infrastructure.models.factory import ConfiguredModelProvider
 
 TimeRange = Literal["day", "week", "month", "year"]
 
@@ -15,31 +15,32 @@ TimeRange = Literal["day", "week", "month", "year"]
 class SearchQuery(BaseModel):
     query: str = Field(
         description="A specific, single-intent, entity-disambiguated search query "
-                    "with varied phrasing relative to the other queries."
+        "with varied phrasing relative to the other queries."
     )
     time_range: TimeRange = Field(
         description="The best recency window for THIS query: 'day'/'week' for "
-                    "breaking/time-sensitive angles, 'month' for general recent "
-                    "activity, 'year' for background/contextual angles."
+        "breaking/time-sensitive angles, 'month' for general recent "
+        "activity, 'year' for background/contextual angles."
     )
 
 
 class SearchQueries(BaseModel):
     queries: list[SearchQuery] = Field(
-        min_length=3, max_length=5,
+        min_length=3,
+        max_length=5,
         description="3-5 specific, single-intent, entity-disambiguated queries "
-                    "covering different facets of the topic, each with its own "
-                    "appropriate time range.",
+        "covering different facets of the topic, each with its own "
+        "appropriate time range.",
     )
 
 
-def create_query_transform_agent() -> PrefectAgent[str, List[SearchQueries]]:
+def create_query_transform_agent() -> PrefectAgent[str, list[SearchQueries]]:
     provider = ConfiguredModelProvider(prefer_env_first=True)  # local dev with .env
     model = provider.get_model("pydantic:gemini-2.5-flash-lite")
     agent = Agent(
         model,
-        name=f"query_transformation",
-        output_type=List[SearchQueries],
+        name="query_transformation",
+        output_type=list[SearchQueries],
         tools=[],
         system_prompt=(
             """
@@ -91,9 +92,7 @@ Return only the queries.
     )
     return PrefectAgent(
         agent,
-        model_task_config=TaskConfig(
-            retries=3, retry_delay_seconds=[1.0, 2.0, 4.0], timeout_seconds=60.0
-        ),
+        model_task_config=TaskConfig(retries=3, retry_delay_seconds=[1.0, 2.0, 4.0], timeout_seconds=60.0),
     )
 
 
@@ -105,8 +104,9 @@ Return only the queries.
     persist_result=True,
     retries=3,
     retry_delay_seconds=[1.0, 2.0, 4.0],
-    timeout_seconds=60.0)
-async def query_transformation_task(query: str = "what is the latest news on tesla stock?") -> List[SearchQueries]:
+    timeout_seconds=60.0,
+)
+async def query_transformation_task(query: str = "what is the latest news on tesla stock?") -> list[SearchQueries]:
     logger = get_run_logger()
     logger.info("Starting query transformation for: '%s'", query)
     agent = create_query_transform_agent()

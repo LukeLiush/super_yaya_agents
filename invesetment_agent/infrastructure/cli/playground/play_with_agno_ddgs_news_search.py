@@ -13,10 +13,11 @@ from agno.tools.websearch import WebSearchTools
 from ddgs.exceptions import DDGSException
 from dotenv import load_dotenv
 from tenacity import (
+    Retrying,
+    before_sleep_log,
     retry_if_exception_type,
     stop_after_attempt,
     wait_exponential_jitter,
-    before_sleep_log, Retrying,
 )
 
 logging.basicConfig(level=logging.DEBUG)
@@ -24,12 +25,12 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 _BACKENDS: list[str] = [
     "auto",
-    #"brave",
-    #"duckduckgo",
-    #"google",
-    #"grokipedia",
-    #"mojeek",
-    #"wikipedia",
+    # "brave",
+    # "duckduckgo",
+    # "google",
+    # "grokipedia",
+    # "mojeek",
+    # "wikipedia",
     "yahoo",
     "yandex",
     "auto",
@@ -51,11 +52,14 @@ class EmptyNewsResults(Exception):
 def _to_timelimit(time_range: TimeRange) -> str:
     try:
         return _TIMELIMIT_MAP[time_range]
-    except KeyError:
-        raise ValueError(f"invalid time_range: {time_range!r} (use day/week/month/year)")
+    except KeyError as err:
+        raise ValueError(f"invalid time_range: {time_range!r} (use day/week/month/year)") from err
 
 
-def _build_ddg(timelimit: str, backend: str, ) -> WebSearchTools:
+def _build_ddg(
+    timelimit: str,
+    backend: str,
+) -> WebSearchTools:
     # timelimit/backend are fixed at construction time, so build per-call to vary them.
     return WebSearchTools(
         enable_news=True,
@@ -93,10 +97,10 @@ def _search_news_with_retry(query: str, max_results: int, max_attempts: int, tim
 
 @tool(description="Search recent news for any query using DuckDuckGo, with retry on empty/failed results.")
 def search_news_with_ddg(
-        query: str,
-        max_results: int = 50,
-        max_attempts: int = 10,
-        time_range: TimeRange = "month",
+    query: str,
+    max_results: int = 50,
+    max_attempts: int = 10,
+    time_range: TimeRange = "month",
 ) -> str:
     """
     Args:
@@ -138,7 +142,9 @@ def create_model() -> Model:
     )
 
 
-def create_websearch_agent(model: Model, ) -> Agent:
+def create_websearch_agent(
+    model: Model,
+) -> Agent:
     return Agent(
         name="Web Research Agent",
         # When an agent is a member of a Team, the team leader uses each member's role
@@ -147,11 +153,8 @@ def create_websearch_agent(model: Model, ) -> Agent:
         # It's meant to be a concise capability descriptor, not a full persona or behavioral instruction.
         # For a standalone agent that isn't in a team, role has little to no effect on behavior.
         role="Get Company stock news and sentiments",
-
         model=model,
-        tools=[
-            search_news_with_ddg
-        ],
+        tools=[search_news_with_ddg],
         instructions=[
             "You are a stock news research assistant.",
             "When given a ticker and a time window, use DuckDuckGo to search for recent news about that stock.",

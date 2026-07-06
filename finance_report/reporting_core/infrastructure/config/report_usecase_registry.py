@@ -1,13 +1,14 @@
 import typing
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Callable, Awaitable, Any
+from typing import Any
 
 from lagom import Container
 
+from finance_report.finance_sdk.schemas import ReportType, UnknownReportType
 from finance_report.reporting_core.application.insider_filling.generate_report import GenerateInsiderReportUseCase
 from finance_report.reporting_core.application.market_data.generate_report import GeneratePriceReportUseCase
 from finance_report.reporting_core.application.news.generate_report import GenerateNewsReportUseCase
-from finance_report.finance_sdk.schemas import ReportType, UnknownReportType
 
 
 # report_registry.py
@@ -35,8 +36,8 @@ class ReportRegistry:
     def handler_for(self, report_type: ReportType) -> ReportHandler:
         try:
             return self._handlers[report_type]
-        except KeyError:
-            raise UnknownReportType(report_type)
+        except KeyError as err:
+            raise UnknownReportType(report_type) from err
 
     def known_types(self) -> tuple[ReportType, ...]:
         return tuple(self._handlers)

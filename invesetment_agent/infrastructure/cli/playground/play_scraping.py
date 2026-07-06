@@ -6,7 +6,8 @@ uv add patchright
 uv add playwright
 uv run playwright install chromium
 """
-from scrapling import StealthyFetcher, DynamicFetcher, Fetcher
+
+from scrapling import DynamicFetcher, Fetcher, StealthyFetcher
 from scrapling.engines.toolbelt.custom import Response
 
 
@@ -17,7 +18,7 @@ def scrape(url: str, mode: str = "static") -> Response:
     or use .html_content / .get_all_text().
     """
     if mode == "stealth":
-        #return StealthyFetcher.fetch(url, headless=True, solve_cloudflare=True, network_idle=True)
+        # return StealthyFetcher.fetch(url, headless=True, solve_cloudflare=True, network_idle=True)
         page = StealthyFetcher.fetch(
             url,
             headless=True,
@@ -34,13 +35,17 @@ def scrape(url: str, mode: str = "static") -> Response:
 
 def main():
     import logging
-    logging.basicConfig(level=logging.DEBUG)
-    from scrapling.fetchers import DynamicFetcher
-    from markdownify import markdownify as md
 
-    page = scrape("https://www.amazon.com/s?k=amd+ryzen+7+5700x&crid=1M6LBMFK9L5NZ&sprefix=AMD+Ryzen%2Caps%2C978&ref=nb_sb_ss_saint-nlq-prefix_ci_hl-bn-left_1_10", mode="stealth")
-    markdown = md(page.html_content)
-    #print(page.html_content)
+    logging.basicConfig(level=logging.DEBUG)
+    from markdownify import markdownify as md
+    from scrapling.fetchers import DynamicFetcher
+
+    page = scrape(
+        "https://www.amazon.com/s?k=amd+ryzen+7+5700x&crid=1M6LBMFK9L5NZ&sprefix=AMD+Ryzen%2Caps%2C978&ref=nb_sb_ss_saint-nlq-prefix_ci_hl-bn-left_1_10",
+        mode="stealth",
+    )
+    md(page.html_content)
+    # print(page.html_content)
     print(page.body)
 
 

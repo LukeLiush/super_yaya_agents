@@ -9,6 +9,7 @@ from pydantic_ai.common_tools.duckduckgo import duckduckgo_search_tool
 from pydantic_ai.models import Model
 from pydantic_ai.models.google import GoogleModel
 from pydantic_ai.providers.google import GoogleProvider
+
 logging.basicConfig(level=logging.DEBUG)
 
 logger = logging.getLogger(__name__)
@@ -30,12 +31,18 @@ def create_model() -> Model:
     )
 
 
-def create_websearch_agent(model: Model, ) -> Agent:
+def create_websearch_agent(
+    model: Model,
+) -> Agent:
     return Agent(
         name="Web Research Agent",
         model=model,
         tools=[duckduckgo_search_tool()],
-        system_prompt="You are a helpful research assistant. Use the duckduckgo_search tool to find information when asked. If the user asks for a specific timeframe, try to include that in your search query.",
+        system_prompt=(
+            "You are a helpful research assistant. "
+            "Use the duckduckgo_search tool to find information when asked. "
+            "If the user asks for a specific timeframe, try to include that in your search query."
+        ),
     )
 
 

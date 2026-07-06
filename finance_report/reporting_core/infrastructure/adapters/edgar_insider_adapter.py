@@ -2,18 +2,17 @@ import datetime as dt
 import logging
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
-from typing import List, Tuple, Optional
 
 import edgar
 import pandas as pd
 from edgar import Company
 from edgar.entity import EntityFilings
 from edgar.ownership import Form4
-from tenacity import Retrying, stop_after_attempt, wait_exponential, before_sleep_log
+from tenacity import Retrying, before_sleep_log, stop_after_attempt, wait_exponential
 
 from finance_report.reporting_core.application.insider_filling.dtos import InsiderTransaction
 from finance_report.reporting_core.application.insider_filling.provider import InsiderProvider
-from finance_report.reporting_core.domain.shared_values import Ticker, Provenance
+from finance_report.reporting_core.domain.shared_values import Provenance, Ticker
 
 logger = logging.getLogger(__name__)
 
@@ -27,12 +26,16 @@ class TransientDataError(Exception):
 
 
 class EdgarInsiderAdapter(InsiderProvider):
-    def __init__(self, retrying: Optional[Retrying] = None, ):
+    def __init__(
+        self,
+        retrying: Retrying | None = None,
+    ):
         self.retrying = retrying or Retrying(
             stop=stop_after_attempt(3),
             wait=wait_exponential(multiplier=1, min=2, max=10),
             reraise=True,
-            before_sleep=before_sleep_log(logger, logging.INFO), )
+            before_sleep=before_sleep_log(logger, logging.INFO),
+        )
 
     def _get_form4_dataframe(self, company: Company, start: str, end: str) -> pd.DataFrame:
         try:
@@ -42,9 +45,7 @@ class EdgarInsiderAdapter(InsiderProvider):
             raise TransientDataError(f"Failed to fetch Form 4 filings: {e}") from e
 
         if not filings:
-            raise NoFilingsFoundError(
-                f"No Form 4 filings for {company.tickers} between {start} and {end}"
-            )
+            raise NoFilingsFoundError(f"No Form 4 filings for {company.tickers} between {start} and {end}")
         logger.info("Discovered %d raw filings. Parsing dataframes...", len(filings))
 
         dataframes = []
@@ -53,17 +54,16 @@ class EdgarInsiderAdapter(InsiderProvider):
             df = f4.to_dataframe()
             dataframes.append(df)
         combined_df = pd.concat(dataframes, ignore_index=True)
-        sanitized_df = combined_df.replace({pd.NA: None, float('nan'): None})
+        sanitized_df = combined_df.replace({pd.NA: None, float("nan"): None})
         if sanitized_df.empty:
             raise NoFilingsFoundError(
-                f"Form 4 filings found but contained no transactions for "
-                f"{company.tickers} between {start} and {end}"
+                f"Form 4 filings found but contained no transactions for {company.tickers} between {start} and {end}"
             )
         return sanitized_df
 
-    def fetch_transactions(self, ticker: Ticker,
-                           start_date: dt.date,
-                           end_date: dt.date) -> Tuple[List[InsiderTransaction], Optional[Provenance]]:
+    def fetch_transactions(
+        self, ticker: Ticker, start_date: dt.date, end_date: dt.date
+    ) -> tuple[list[InsiderTransaction], Provenance | None]:
         company = Company(ticker.symbol)
 
         start = start_date.strftime("%Y-%m-%d")
@@ -71,15 +71,17 @@ class EdgarInsiderAdapter(InsiderProvider):
 
         df: pd.DataFrame = self.retrying(self._get_form4_dataframe, company, start, end)
 
-        provenance: Provenance = Provenance(source=edgar.__name__,
-                                            query=f'Company("{ticker.symbol}").get_filings(form="4", filing_date=("{start}", "{end}"))',
-                                            queried_at=datetime.now(dt.timezone.utc),
-                                            source_version=edgar.__version__)
+        provenance: Provenance = Provenance(
+            source=edgar.__name__,
+            query=f'Company("{ticker.symbol}").get_filings(form="4", filing_date=("{start}", "{end}"))',
+            queried_at=datetime.now(dt.UTC),
+            source_version=edgar.__version__,
+        )
         return _dataframe_to_transactions(df), provenance
 
 
-def _dataframe_to_transactions(df: pd.DataFrame) -> List[InsiderTransaction]:
-    transactions: List[InsiderTransaction] = []
+def _dataframe_to_transactions(df: pd.DataFrame) -> list[InsiderTransaction]:
+    transactions: list[InsiderTransaction] = []
     for record in df.to_dict(orient="records"):
         try:
             txn = _row_to_transaction(record)

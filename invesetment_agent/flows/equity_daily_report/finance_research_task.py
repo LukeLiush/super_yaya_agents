@@ -2,7 +2,6 @@ import asyncio
 import datetime
 import os
 from pathlib import Path
-from typing import List
 
 import pandas as pd
 from agno.tools.slack import SlackTools
@@ -11,7 +10,7 @@ from dotenv import load_dotenv
 from edgar import Company, set_identity
 from edgar.entity import EntityFilings
 from edgar.ownership import Form4
-from prefect import get_run_logger, flow
+from prefect import flow, get_run_logger
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, FunctionToolset, RunContext
 from pydantic_ai.durable_exec.prefect import PrefectAgent
@@ -38,24 +37,28 @@ class FinancialReport(BaseModel):
     company_name: str
     current_price: float
     currency: str = "USD"
-    price_matrix: List[PriceWindow] = Field(
-        description="List containing the high/low matrix for all requested windows.")
+    price_matrix: list[PriceWindow] = Field(
+        description="List containing the high/low matrix for all requested windows."
+    )
 
     # Clean structured data if you ever need to save to a database downstream
-    news_analysis: List[AnalyzedNewsArticle] = Field(
-        description="List of the extracted news articles with summaries and sentiments.")
+    news_analysis: list[AnalyzedNewsArticle] = Field(
+        description="List of the extracted news articles with summaries and sentiments."
+    )
 
     # --- SLACK OPTIMIZED LAYOUT STRINGS ---
     slack_monospaced_table: str = Field(
         description=(
-            "A beautifully formatted plaintext table optimized for a Slack monospaced block (wrapped in triple backticks). "
+            "A beautifully formatted plaintext table optimized for a Slack monospaced block "
+            "(wrapped in triple backticks). "
             "Columns must be padded to line up exactly: Window, High ($), Low ($)."
         )
     )
 
     slack_news_feed: str = Field(
         description=(
-            "A Slack-friendly block string containing the news feed. Format each article exactly as a clean bullet point: "
+            "A Slack-friendly block string containing the news feed. "
+            "Format each article exactly as a clean bullet point: "
             "• *[SENTIMENT]* <URL|Title> - _Summary text here_"
         )
     )
@@ -69,7 +72,10 @@ class FinancialReport(BaseModel):
     )
 
 
-def get_1_year_historical_stock_prices(ctx: RunContext[YFinanceTools], ticker: str, ) -> str:
+def get_1_year_historical_stock_prices(
+    ctx: RunContext[YFinanceTools],
+    ticker: str,
+) -> str:
     """
     Fetch the last 1 year of historical daily stock prices for a given ticker.
     Returns a JSON string of historical OHLC data.
@@ -79,18 +85,11 @@ def get_1_year_historical_stock_prices(ctx: RunContext[YFinanceTools], ticker: s
 
 def get_insider_trading_activities(ticker: str, recent_days: int = 90) -> str:
     """
-     Retrieves recent insider trading activities (SEC Form 4 filings) for a specific stock ticker within a look-back window.
+    Retrieves recent insider trading activities (SEC Form 4 filings) for a specific stock ticker
+    within a look-back window.
 
     This tool helps identify buying and selling patterns by company executives and directors (insiders),
     which can provide insights into internal sentiment and potential future stock performance.
-
-    Args:
-        ticker: The stock symbol to query (e.g., 'AAPL', 'TSLA').
-        recent_days: The number of days to look back for transactions. Defaults to 90 days.
-
-    This tool helps identify buying and selling patterns by company executives and directors (insiders).
-    Returns a JSON string containing transaction records.
-
     """
     company = Company(ticker)
 
@@ -119,33 +118,42 @@ def get_insider_trading_activities(ticker: str, recent_days: int = 90) -> str:
 def _build_agent(yfinance_tools: YFinanceTools) -> PrefectAgent:
     provider = ConfiguredModelProvider(prefer_env_first=True)
     model = provider.get_model("pydantic:gemini-2.5-flash-lite")
-    yfinance_toolset = FunctionToolset(tools=[yfinance_tools.get_company_info,
-                                              get_1_year_historical_stock_prices,
-                                              yfinance_tools.get_current_stock_price,
-                                              yfinance_tools.get_company_news])
+    yfinance_toolset = FunctionToolset(
+        tools=[
+            yfinance_tools.get_company_info,
+            get_1_year_historical_stock_prices,
+            yfinance_tools.get_current_stock_price,
+            yfinance_tools.get_company_news,
+        ]
+    )
     edgar_toolset = FunctionToolset(tools=[get_insider_trading_activities])
-    agent = Agent(name="Finance Agent",
-                  model=model,
-                  output_type=FinancialReport,
-                  toolsets=[yfinance_toolset, edgar_toolset],
-                  deps_type=YFinanceTools,  # <--- Add this line
-                  system_prompt=(
-                      "You are an expert financial data retrieval and analysis assistant. Your sole responsibility is to extract, "
-                      "verify, summarize, and return data conforming strictly to the requested schema.\n\n"
-
-                      "CRITICAL EXECUTION RULES:\n"
-                      "1. TOOL USAGE: Utilize the provided yfinance and EDGAR tools to fetch all requested data. "
-                      "Use the insider trading tool to identify significant moves by company executives.\n"
-                      "2. DATA INTEGRITY: Report all numerical values exactly as returned by the tools.\n"
-                      "3. NEWS SUMMARIZATION & SENTIMENT: For each news item found, summarize core facts. "
-                      "Determine market sentiment: 'Bullish', 'Bearish', or 'Neutral'.\n"
-                      "4. INSIDER ACTIVITIES: Summarize the most relevant Form 4 filings. Highlight significant buys or sells "
-                      "by high-ranking officers (CEO, CFO, etc.).\n"
-                      "5. SLACK BLOCKS TEMPLATE FORMATTING:\n"
-                      "   - 'slack_monospaced_table' must be wrapped in triple backticks, keeping columns padded cleanly.\n"
-                      "   - 'slack_news_feed' must use the bullet format: • *[Sentiment]* <URL|Headline Title> - _Summary_\n"
-                      "   - 'slack_insider_activities' should be a concise summary of the last 12 months of insider trades."
-                  ))
+    agent = Agent(
+        name="Finance Agent",
+        model=model,
+        output_type=FinancialReport,
+        toolsets=[yfinance_toolset, edgar_toolset],
+        deps_type=YFinanceTools,  # <--- Add this line
+        system_prompt=(
+            "You are an expert financial data retrieval and analysis assistant. "
+            "Your sole responsibility is to extract, verify, summarize, and return data "
+            "conforming strictly to the requested schema.\n\n"
+            "CRITICAL EXECUTION RULES:\n"
+            "1. TOOL USAGE: Utilize the provided yfinance and EDGAR tools to fetch all requested data. "
+            "Use the insider trading tool to identify significant moves by company executives.\n"
+            "2. DATA INTEGRITY: Report all numerical values exactly as returned by the tools.\n"
+            "3. NEWS SUMMARIZATION & SENTIMENT: For each news item found, summarize core facts. "
+            "Determine market sentiment: 'Bullish', 'Bearish', or 'Neutral'.\n"
+            "4. INSIDER ACTIVITIES: Summarize the most relevant Form 4 filings. "
+            "Highlight significant buys or sells by high-ranking officers (CEO, CFO, etc.).\n"
+            "5. SLACK BLOCKS TEMPLATE FORMATTING:\n"
+            "   - 'slack_monospaced_table' must be wrapped in triple backticks, "
+            "keeping columns padded cleanly.\n"
+            "   - 'slack_news_feed' must use the bullet format: "
+            "• *[Sentiment]* <URL|Headline Title> - _Summary_\n"
+            "   - 'slack_insider_activities' should be a concise summary of the last 12 months "
+            "of insider trades."
+        ),
+    )
     return PrefectAgent(agent)
 
 
@@ -160,18 +168,16 @@ async def test_flow():
     else:
         logger.warning("Environment file not found at %s", _env_path)
     # test = equity_price_research_task.submit("VTSAX")
-    #ticker = "VTSAX"
+    # ticker = "VTSAX"
     ticker = "TSLA"
     number_of_recent_news = 10
     report_period = "30 days"
 
-    yfinance_tools = YFinanceTools(enable_company_news=True,
-                                   enable_company_info=True,
-                                   enable_historical_prices=True,
-                                   enable_stock_price=True)
+    yfinance_tools = YFinanceTools(
+        enable_company_news=True, enable_company_info=True, enable_historical_prices=True, enable_stock_price=True
+    )
     agent = _build_agent(yfinance_tools)
-    user_prompt: str = \
-        f"""
+    user_prompt: str = f"""
             Analyze the asset ticker: {ticker} .
 
         Using the historical stock prices tool, calculate the High and Low prices for:
@@ -179,14 +185,13 @@ async def test_flow():
     
         Also extract:
         1. Company info.
-        2. The {number_of_recent_news} most recent news articles with sentiment analysis focusing on the last {report_period}.
+        2. The {number_of_recent_news} most recent news articles with sentiment analysis "
+        f"focusing on the last {report_period}.
         3. Insider trading activities (SEC Form 4) for the last {report_period}. 
        (Set 'recent_days' accordingly in the tool call).
             """
 
-    result = await agent.run(user_prompt=user_prompt,
-                             deps=yfinance_tools
-                             )
+    result = await agent.run(user_prompt=user_prompt, deps=yfinance_tools)
     report: FinancialReport = result.output
 
     print("--- SLACK READY COMPOSITE OUTPUT ---")
@@ -212,7 +217,7 @@ async def test_flow():
             f"{report.slack_insider_activities}\n\n"
             "*Recent News & Sentiment Analysis:*\n"
             f"{report.slack_news_feed}"
-        )
+        ),
     )
 
 

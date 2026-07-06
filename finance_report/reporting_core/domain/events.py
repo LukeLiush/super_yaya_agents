@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from finance_report.reporting_core.domain.shared_values import Ticker, ReportId, ValueObject
+from finance_report.reporting_core.domain.shared_values import ReportId, Ticker, ValueObject
 
 
 class ReportRequested(ValueObject):

@@ -1,19 +1,21 @@
 import datetime
 import json
-from typing import List, Optional
 from zoneinfo import ZoneInfo
 
 from agno.tools.slack import SlackTools
 from agno.tools.yfinance import YFinanceTools
-from prefect import task, get_run_logger
+from fetch_asset_news import AnalyzedNewsArticle, News, fetch_asset_news
+from fetch_insider_activities import (
+    GetInsiderActivityArg,
+    InsiderTradingActivities,
+    get_insider_trading_activities_task,
+)
+from fetch_price_histories import HistoricalPriceReport, fetch_historical_ranges_task
+from prefect import get_run_logger, task
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 from pydantic_ai.durable_exec.prefect import PrefectAgent
 
-from fetch_asset_news import fetch_asset_news, AnalyzedNewsArticle, News
-from fetch_insider_activities import get_insider_trading_activities_task, GetInsiderActivityArg, \
-    InsiderTradingActivities
-from fetch_price_histories import fetch_historical_ranges_task, HistoricalPriceReport
 from invesetment_agent.infrastructure.models.factory import ConfiguredModelProvider
 
 
@@ -25,7 +27,8 @@ class SlackReportPayload(BaseModel):
     slack_friendly_price_matrix: str = Field(
         # max_length=1000,
         description=(
-            "A beautifully formatted plaintext table optimized for a Slack monospaced block (wrapped in triple backticks). "
+            "A beautifully formatted plaintext table optimized for a Slack monospaced "
+            "block (wrapped in triple backticks). "
             "Columns must line up perfectly using whitespace padding: Window, High ($), Low ($). "
             "STRICT LIMIT: Must be under 1,000 characters."
         )
@@ -63,31 +66,31 @@ def _build_synthesis_agent() -> PrefectAgent:
         output_type=SlackReportPayload,
         system_prompt=(
             "You are a master financial technical writer and UI presentation specialist. "
-            "Your job is to compile raw data blocks into an exceptionally clean, readable, and professional Slack message layout.\n\n"
-
+            "Your job is to compile raw data blocks into an exceptionally clean, "
+            "readable, and professional Slack message layout.\n\n"
             "CRITICAL FORMATTING GUIDELINES:\n"
             "1. STRUCTURE: Combine the information into these explicit sections using bold titles:\n"
             "   - *📈 Financial Report: [Company/Ticker]*\n"
             "   - *Price Performance Matrix:*\n"
             "   - *Insider Trading Summary:*\n"
             "   - *Recent News & Sentiment Analysis:*\n"
-            "2. MATRIX LAYOUT: Render the high/low window table inside a code fence block (wrapped in triple backticks) "
-            "so the monospaced font aligns columns perfectly.\n"
-            "3. INSIDER & NEWS LAYOUT: Present these items as clean bullet points. For news, ensure you map them using "
-            "Slack's native link markdown formatting: • *[SENTIMENT]* <URL|Title> - _Summary_.\n"
-            "4. FILLERS: Do not introduce conversational chatter, introductory remarks ('Here is your report...'), or corporate disclaimers. "
+            "2. MATRIX LAYOUT: Render the high/low window table inside a code fence block "
+            "(wrapped in triple backticks) so the monospaced font aligns columns perfectly.\n"
+            "3. INSIDER & NEWS LAYOUT: Present these items as clean bullet points. "
+            "For news, ensure you map them using Slack's native link markdown formatting: "
+            "• *[SENTIMENT]* <URL|Title> - _Summary_.\n"
+            "4. FILLERS: Do not introduce conversational chatter, introductory remarks "
+            "('Here is your report...'), or corporate disclaimers. "
             "Provide only the styled markdown contents."
-        )
+        ),
     )
     return PrefectAgent(agent)
 
 
 @task
-def send_attractive_thread_subject(ticker: str,
-                                   company_info: str,
-                                   current_price: float,
-                                   slack_tools: SlackTools,
-                                   slack_channel: str) -> Optional[str]:
+def send_attractive_thread_subject(
+    ticker: str, company_info: str, current_price: float, slack_tools: SlackTools, slack_channel: str
+) -> str | None:
     logger = get_run_logger()
     # --- 1. Generate an Attractive Thread Subject ---
     zone_info = ZoneInfo("America/Los_Angeles")
@@ -115,28 +118,32 @@ def send_attractive_thread_subject(ticker: str,
 
 
 @task
-async def synthesize_slack_report_task(ticker: str, slack_tools: SlackTools, slack_channel: str) :
+async def synthesize_slack_report_task(ticker: str, slack_tools: SlackTools, slack_channel: str):
     logger = get_run_logger()
     logger.info("Synthesizing final Slack payload compilation for %s...", ticker)
 
-    yfinance_tools = YFinanceTools(enable_company_info=True,)
+    yfinance_tools = YFinanceTools(
+        enable_company_info=True,
+    )
     company_info = json.loads(yfinance_tools.get_company_info(ticker))
     company_name: str = company_info.get("longName", ticker)
     current_stock_price: str = yfinance_tools.get_current_stock_price(ticker)
     current_price: float = float(current_stock_price) if current_stock_price else 0.0
 
-    thread_ts: str = send_attractive_thread_subject(ticker=ticker,
-                                                    company_info=company_name,
-                                                    current_price=current_price,
-                                                    slack_tools=slack_tools,
-                                                    slack_channel=slack_channel)
+    thread_ts: str = send_attractive_thread_subject(
+        ticker=ticker,
+        company_info=company_name,
+        current_price=current_price,
+        slack_tools=slack_tools,
+        slack_channel=slack_channel,
+    )
 
     news_future = fetch_asset_news.submit(ticker=ticker)
     insider_future = get_insider_trading_activities_task.submit(GetInsiderActivityArg(ticker=ticker, recent_days=90))
     price_future = fetch_historical_ranges_task.submit(ticker=ticker)
 
-    # activities: InsiderTradingActivities = insider_future.result()
-    # slack_tools.send_message_thread(channel=slack_channel, text=activities.slack_insider_activities, thread_ts=thread_ts)
+    insider: InsiderTradingActivities = insider_future.result()
+    slack_tools.send_message_thread(channel=slack_channel, text=insider.slack_insider_activities, thread_ts=thread_ts)
 
     news: News = news_future.result()
     slack_tools.send_message_thread(channel=slack_channel, text=news.slack_message(), thread_ts=thread_ts)
@@ -149,7 +156,8 @@ async def synthesize_slack_report_task(ticker: str, slack_tools: SlackTools, sla
     #
     # # 2. Build a clear, structured prompt containing the raw data blocks
     # user_prompt = f"""
-    #     You are tasked with transforming raw financial data packets for ticker symbol {ticker} into clean, separate, Slack-ready markdown string blocks.
+    #     You are tasked with transforming raw financial data packets for ticker symbol {ticker} "
+    #     "into clean, separate, Slack-ready markdown string blocks.
     #
     #     --- UPSTREAM RAW DATA PANELS ---
     #
@@ -170,16 +178,24 @@ async def synthesize_slack_report_task(ticker: str, slack_tools: SlackTools, sla
     #     --------------------------------
     #
     #     EXECUTION INSTRUCTIONS:
-    #     1. Parse the [HISTORICAL PRICING MATRIX DATA] array and map it to `slack_friendly_price_matrix`. Render it as a beautifully padded monospaced plaintext table wrapped in triple backticks.
-    #     2. Clean and distill the [INSIDER TRADING ACTIONS RAW LOGS] block into a concise bulleted narrative for `slack_friendly_insider_text`. If the raw log indicates no records or empty sets, use a clean fallback bullet.
-    #     3. Iterate through the items inside [RECENT NEWS DATA FEEDS] to populate `slack_friendly_news`. Synthesize the summary into 1-2 tight sentences and format the links exactly using Slack's '<URL|Title>' syntax.
-    #     4. Continuously monitor your character budget! Ensure `slack_friendly_insider_text` and `slack_friendly_news` strictly adhere to their respective character caps by truncating older or lower-priority line items if needed.
+    #     1. Parse the [HISTORICAL PRICING MATRIX DATA] array and map it to "
+    #     "`slack_friendly_price_matrix`. Render it as a beautifully padded monospaced "
+    #     "plaintext table wrapped in triple backticks.
+    #     2. Clean and distill the [INSIDER TRADING ACTIONS RAW LOGS] block into a concise "
+    #     "bulleted narrative for `slack_friendly_insider_text`. If the raw log indicates "
+    #     "no records or empty sets, use a clean fallback bullet.
+    #     3. Iterate through the items inside [RECENT NEWS DATA FEEDS] to populate "
+    #     "`slack_friendly_news`. Synthesize the summary into 1-2 tight sentences and "
+    #     "format the links exactly using Slack's '<URL|Title>' syntax.
+    #     4. Continuously monitor your character budget! Ensure `slack_friendly_insider_text` "
+    #     "and `slack_friendly_news` strictly adhere to their respective character caps by "
+    #     "truncating older or lower-priority line items if needed.
     #     5. Convert the news feed items into `slack_friendly_news` using the '<URL|Title>' format.
     #        BUDGET CONSTRAINT: You are explicitly forbidden from outputting more than 5 news bullets.
-    #        Pick the top 5 highest-impact articles and discard everything else to guarantee you stay well under the 3,000 character limit.
+    #        Pick the top 5 highest-impact articles and discard everything else to guarantee "
+    #        "you stay well under the 3,000 character limit.
     #     """
     #
     # logger.debug("Executing synthesis transformation run loop...")
     # result = await synthesis_agent.run(user_prompt=user_prompt)
     # logger.info("Slack visual mapping completed successfully for ticker %s.", ticker)
-

@@ -3,18 +3,18 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import List, Literal
+from typing import Literal
 
 from agno.tools.websearch import WebSearchTools
 from ddgs.exceptions import DDGSException
 from dotenv import load_dotenv
-from prefect import flow, task, get_run_logger
+from prefect import flow, get_run_logger, task
 from prefect.artifacts import create_table_artifact
-from prefect.cache_policies import INPUTS, DEFAULT
+from prefect.cache_policies import DEFAULT, INPUTS
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, Tool
 from pydantic_ai.durable_exec.prefect import PrefectAgent, TaskConfig
-from tenacity import Retrying, retry_if_exception_type, stop_after_attempt, wait_exponential_jitter, before_sleep_log
+from tenacity import Retrying, before_sleep_log, retry_if_exception_type, stop_after_attempt, wait_exponential_jitter
 
 env_path: Path = Path(__file__).parent / ".env"
 load_dotenv(dotenv_path=env_path)
@@ -26,10 +26,10 @@ if not google_api_key:
 
 class MetadataTextSearchResult(BaseModel):
     """Structured, validated output."""
+
     title: str
     body: str
     url: str
-
 
 
 TimeRange = Literal["day", "week", "month", "year"]
@@ -51,6 +51,7 @@ _BACKENDS: list[str] = [
     "auto",
 ]
 
+
 class EmptyNewsResults(Exception):
     """Raised when the news search returns no items, to trigger a retry."""
 
@@ -58,8 +59,8 @@ class EmptyNewsResults(Exception):
 def _to_timelimit(time_range: TimeRange) -> str:
     try:
         return _TIMELIMIT_MAP[time_range]
-    except KeyError:
-        raise ValueError(f"invalid time_range: {time_range!r} (use day/week/month/year)")
+    except KeyError as err:
+        raise ValueError(f"invalid time_range: {time_range!r} (use day/week/month/year)") from err
 
 
 def _build_ddg(timelimit: str, backend: str) -> WebSearchTools:
@@ -88,8 +89,7 @@ def _do_search(query: str, max_results: int, timelimit: str, backend: str):
     raise (query)
 
 
-def _search_news_with_retry(query: str, max_results: int, max_attempts: int,
-                            timelimit: str, backend: str):
+def _search_news_with_retry(query: str, max_results: int, max_attempts: int, timelimit: str, backend: str):
     logger = get_run_logger()
     retryer = Retrying(
         retry=retry_if_exception_type((DDGSException, EmptyNewsResults)),
@@ -102,11 +102,11 @@ def _search_news_with_retry(query: str, max_results: int, max_attempts: int,
 
 
 def web_search_with_ddg(
-        query: str,
-        max_results: int = 50,
-        max_attempts: int = 10,
-        time_range: TimeRange = "month",
-        backend: str = "auto",
+    query: str,
+    max_results: int = 50,
+    max_attempts: int = 10,
+    time_range: TimeRange = "month",
+    backend: str = "auto",
 ) -> str:
     """
     Args:
@@ -114,12 +114,16 @@ def web_search_with_ddg(
         max_results: Maximum number of search results to return.
         max_attempts: How many times to retry on throttling or empty results.
         time_range: How far back to search: "day", "week", "month", or "year".
-        backend: The search engine backend to use (e.g., "duckduckgo", "google", "yahoo", "yandex", or "auto" to let the library decide).
+        backend: The search engine backend to use (e.g., "duckduckgo", "google", "yahoo", "yandex", or "auto"
+            to let the library decide).
     """
     logger = get_run_logger()
     logger.info(
         "TOOL CALL web_search_with_ddg | query=%r max_results=%d time_range=%s backend=%s",
-        query, max_results, time_range, backend,
+        query,
+        max_results,
+        time_range,
+        backend,
     )
     timelimit = _to_timelimit(time_range)
     try:
@@ -138,7 +142,7 @@ def web_search_with_ddg(
     )
 
 
-def create_fetch_agent(backend: str) -> PrefectAgent[str, List[MetadataTextSearchResult]]:
+def create_fetch_agent(backend: str) -> PrefectAgent[str, list[MetadataTextSearchResult]]:
     from pydantic_ai.models.google import GoogleModel
     from pydantic_ai.providers.google import GoogleProvider
 
@@ -146,7 +150,7 @@ def create_fetch_agent(backend: str) -> PrefectAgent[str, List[MetadataTextSearc
     agent = Agent(
         model,
         name=f"web_search_agent_with_backend_{backend}",
-        output_type=List[MetadataTextSearchResult],
+        output_type=list[MetadataTextSearchResult],
         deps_type=str,
         tools=[
             Tool(web_search_with_ddg, takes_ctx=False),
@@ -158,15 +162,13 @@ def create_fetch_agent(backend: str) -> PrefectAgent[str, List[MetadataTextSearc
     )
     return PrefectAgent(
         agent,
-        model_task_config=TaskConfig(
-            retries=3, retry_delay_seconds=[1.0, 2.0, 4.0], timeout_seconds=60.0
-        ),
+        model_task_config=TaskConfig(retries=3, retry_delay_seconds=[1.0, 2.0, 4.0], timeout_seconds=60.0),
         tool_task_config=TaskConfig(retries=2, retry_delay_seconds=[0.5, 1.0]),
     )
 
 
 @task(persist_result=True, cache_policy=DEFAULT, name="fetch_ddg_search_engine")
-async def fetch_ddg_search_engine() -> List[str]:
+async def fetch_ddg_search_engine() -> list[str]:
     backends = [
         "brave",
         "duckduckgo",
@@ -186,7 +188,9 @@ async def fetch_ddg_search_engine() -> List[str]:
     return backends
 
 
-@task(persist_result=True, cache_policy=DEFAULT, name="run_backend_search")  # ensures the return value is stored & viewable
+@task(
+    persist_result=True, cache_policy=DEFAULT, name="run_backend_search"
+)  # ensures the return value is stored & viewable
 async def run_backend_search(backend: str, query: str) -> list[dict]:
     logger = get_run_logger()
     agent = create_fetch_agent(backend)
@@ -208,11 +212,10 @@ async def run_backend_search(backend: str, query: str) -> list[dict]:
 async def build_equity_research_report() -> dict[str, list[dict]]:
     backends = await fetch_ddg_search_engine()
 
-
     tasks = [run_backend_search(b, "latest news on AAPL stock") for b in backends]
     results = await asyncio.gather(*tasks)
 
-    report = dict(zip(backends, results))
+    report = dict(zip(backends, results, strict=False))
     return report  # flow result also persisted & viewable
 
 

@@ -1,0 +1,29 @@
+[project]
+name = "invesetment-agent"
+version = "0.1.0"
+description = "Investment agents and research flows"
+requires-python = ">=3.11"
+dependencies = [
+    "agno>=2.6.12",
+    "boto3>=1.42.17",
+    "browserforge>=1.2.4",
+    "ddgs>=9.10.0",
+    "google-genai>=2.8.0",
+    "groq>=1.0.0",
+    "markdownify>=1.2.2",
+    "msgspec>=0.21.1",
+    "pandas",
+    "patchright>=1.60.1",
+    "playwright>=1.60.0",
+    "prefect>=3.7.2",
+    "pydantic>=2.0",
+    "pydantic-ai>=1.22.0",
+    "python-dotenv>=1.2.1",
+    "requests",
+    "scrapling>=0.4.9",
+    "slack-bolt>=1.27.0",
+    "streamlit>=1.52.2",
+    "tabulate>=0.10.0",
+    "tenacity>=9.1.2",
+    "yfinance>=1.0",
+]

@@ -8,7 +8,7 @@ from agno.db import BaseDb
 from agno.db.sqlite import SqliteDb
 from agno.models.base import Model
 from agno.models.google import Gemini
-from agno.skills import Skills, LocalSkills
+from agno.skills import LocalSkills, Skills
 from agno.tools.python import PythonTools
 from agno.tools.yfinance import YFinanceTools
 from dotenv import load_dotenv
@@ -27,7 +27,9 @@ skills_path.mkdir(exist_ok=True, parents=True)
 
 # @tool(description="Get insider (SEC Form 4) buy/sell activity for a stock ticker, "
 #                   "broken down by time window, with CEO flagging and % of holdings sold.")
-def get_insider_activity(ticker: str, ) -> pd.DataFrame:
+def get_insider_activity(
+    ticker: str,
+) -> pd.DataFrame:
     company = Company(ticker)
 
     today = datetime.today()
@@ -65,21 +67,26 @@ def create_model() -> Model:
 
 def create_finance_agent(model: Model, db: BaseDb) -> Agent:
     from edgar.ai import install_skill
-    install_skill(to=skills_path, )
+
+    install_skill(
+        to=skills_path,
+    )
     return Agent(
         name="Finance Agent",
         role="Get financial data",
-
         model=model,
-        skills=Skills(loaders=[LocalSkills(path=f"{skills_path}", validate=False), ]),
+        skills=Skills(
+            loaders=[
+                LocalSkills(path=f"{skills_path}", validate=False),
+            ]
+        ),
         tools=[
             PythonTools(),
             YFinanceTools(
                 # stock_price=True,
                 # analyst_recommendations=True,
                 # company_info=True, company_news=True
-            )
-
+            ),
         ],
         instructions=[
             "For insider/ownership questions, use the EdgarTools skill.",
@@ -120,10 +127,10 @@ if __name__ == "__main__":
     # main()
 
     # Set pandas options to ensure complete content is captured (though to_markdown handles much of it)
-    pd.set_option('display.max_rows', None)
-    pd.set_option('display.max_columns', None)
-    pd.set_option('display.width', None)
-    pd.set_option('display.max_colwidth', None)
+    pd.set_option("display.max_rows", None)
+    pd.set_option("display.max_columns", None)
+    pd.set_option("display.width", None)
+    pd.set_option("display.max_colwidth", None)
 
     tesla: pd.DataFrame = get_insider_activity("TSLA")
     print("\nTesla Insider Activity:")

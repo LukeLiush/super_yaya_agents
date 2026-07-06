@@ -11,7 +11,5 @@ class FinanceReportService(Protocol):
     """
 
     async def trigger_report_generation(
-            self,
-            report_trigger_request: ReportTriggerRequest
-    ) -> ReportTriggerResponse:
-        ...
+        self, report_trigger_request: ReportTriggerRequest
+    ) -> ReportTriggerResponse: ...

@@ -1,7 +1,7 @@
 from datetime import date
 
-from finance_report.reporting_core.domain.shared_values import Ticker, ReportPayload, ReportId
 from finance_report.reporting_core.application.insider_filling.dtos import InsiderTransaction
+from finance_report.reporting_core.domain.shared_values import ReportId, ReportPayload, Ticker
 
 
 class InsiderReport(ReportPayload):
@@ -34,5 +34,10 @@ class InsiderReport(ReportPayload):
 
     @classmethod
     def create(cls, report_id: ReportId, ticker: Ticker, transactions, period_start, period_end, provenance):
-        return cls(report_id=report_id, transactions=tuple(transactions),
-                   period_start=period_start, period_end=period_end, provenance=provenance)
+        return cls(
+            report_id=report_id,
+            transactions=tuple(transactions),
+            period_start=period_start,
+            period_end=period_end,
+            provenance=provenance,
+        )

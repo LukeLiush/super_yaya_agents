@@ -2,12 +2,12 @@ import logging
 
 from fastapi import FastAPI
 
-from finance_report.finance_sdk.schemas import ReportTriggerResponse, ReportTriggerRequest
+from finance_report.finance_sdk.schemas import ReportTriggerRequest, ReportTriggerResponse
+from finance_report.reporting_core.infrastructure.config.container import container
 from finance_report.reporting_core.infrastructure.web.asgi_adapter import ASGIAdapter
 
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
-from finance_report.reporting_core.infrastructure.config.container import container
 
 _app = FastAPI()
 

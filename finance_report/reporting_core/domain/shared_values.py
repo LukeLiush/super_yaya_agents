@@ -1,11 +1,11 @@
 import traceback
 import uuid
-from datetime import datetime, timezone, date
+from datetime import UTC, date, datetime, timezone
 from decimal import Decimal
 from enum import Enum
 from typing import Optional
 
-from pydantic import field_validator, ConfigDict, BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ReportStatus(str, Enum):
@@ -18,6 +18,7 @@ class ReportStatus(str, Enum):
 
 class ValueObject(BaseModel):
     """Base for all value objects: frozen (immutable + hashable)."""
+
     model_config = ConfigDict(frozen=True)
 
 
@@ -39,9 +40,9 @@ class ReportId(ValueObject):
 
 class FailureContext(ValueObject):
     # ponytail: automatically capture when the exception was caught
-    caught_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    caught_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     details: str
-    error_type: Optional[str] = None
+    error_type: str | None = None
 
     @classmethod
     def from_exception(cls, exc: BaseException) -> "FailureContext":
@@ -69,7 +70,7 @@ class ReportPayload(ValueObject):
     model_config = ConfigDict(frozen=True)
     report_id: ReportId
     provenance: Provenance | None = None
-    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     def to_prompt_context(self) -> str: ...
 

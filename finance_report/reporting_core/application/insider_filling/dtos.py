@@ -1,6 +1,8 @@
 from datetime import date
 from decimal import Decimal
+
 from finance_report.reporting_core.domain.shared_values import ValueObject
+
 
 class InsiderTransaction(ValueObject):
     insider_name: str

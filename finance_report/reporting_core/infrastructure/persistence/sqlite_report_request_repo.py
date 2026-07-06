@@ -26,22 +26,23 @@ class SqliteReportRequestRepository(ReportRequestRepository):
 
     def save(self, request: ReportRequest) -> None:
         data = request.model_dump(exclude={"id", "ticker", "requested_by", "status", "requested_at"})
-        self._connection.execute("""
+        self._connection.execute(
+            """
             INSERT OR REPLACE INTO report_requests (id, ticker, requested_by, status, data, requested_at)
             VALUES (?, ?, ?, ?, ?, ?)
-        """, (
-            request.id.value,
-            request.ticker.symbol,
-            request.requested_by,
-            request.status.value,
-            json.dumps(data, default=str),
-            request.requested_at.isoformat()
-        ))
+        """,
+            (
+                request.id.value,
+                request.ticker.symbol,
+                request.requested_by,
+                request.status.value,
+                json.dumps(data, default=str),
+                request.requested_at.isoformat(),
+            ),
+        )
 
-    def get_by_id(self, report_id: ReportId) -> Optional[ReportRequest]:
-        row = self._connection.execute(
-            "SELECT * FROM report_requests WHERE id = ?", (report_id.value,)
-        ).fetchone()
+    def get_by_id(self, report_id: ReportId) -> ReportRequest | None:
+        row = self._connection.execute("SELECT * FROM report_requests WHERE id = ?", (report_id.value,)).fetchone()
 
         if not row:
             return None
@@ -53,5 +54,5 @@ class SqliteReportRequestRepository(ReportRequestRepository):
             requested_by=row["requested_by"],
             status=row["status"],
             requested_at=row["requested_at"],
-            **data
+            **data,
         )

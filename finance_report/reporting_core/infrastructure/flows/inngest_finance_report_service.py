@@ -1,7 +1,6 @@
 import datetime
 import logging
 from decimal import Decimal
-from typing import List
 from zoneinfo import ZoneInfo
 
 import inngest.fast_api
@@ -9,16 +8,20 @@ from inngest._internal import server_lib
 from pydantic import BaseModel
 
 from finance_report.finance_sdk.schemas import ReportTriggerRequest, ReportType
-from finance_report.reporting_core.application.ports.company_snapshot_provider import CompanySnapshotProvider, \
-    CompanySnapshot
-from finance_report.reporting_core.application.ports.report_notification import ReportNotifier, NotificationThread
+from finance_report.reporting_core.application.ports.company_snapshot_provider import (
+    CompanySnapshot,
+    CompanySnapshotProvider,
+)
+from finance_report.reporting_core.application.ports.report_notification import NotificationThread, ReportNotifier
 from finance_report.reporting_core.application.ports.report_summarization import ReportSummarizer
-from finance_report.reporting_core.application.use_cases.create_report_request import CreateReportRequestUseCase, \
-    CreateRequestInput
+from finance_report.reporting_core.application.use_cases.create_report_request import (
+    CreateReportRequestUseCase,
+    CreateRequestInput,
+)
 from finance_report.reporting_core.domain.events import ReportRequested
 from finance_report.reporting_core.domain.report_request import ReportRequest
-from finance_report.reporting_core.domain.shared_values import Ticker, ReportPayload
-from finance_report.reporting_core.infrastructure.config.report_usecase_registry import ReportRegistry, ReportHandler
+from finance_report.reporting_core.domain.shared_values import ReportPayload, Ticker
+from finance_report.reporting_core.infrastructure.config.report_usecase_registry import ReportHandler, ReportRegistry
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -32,14 +35,13 @@ class ReportRunResult(BaseModel):
 
 
 class InngestFinanceReportService:
-
     def __init__(
-            self,
-            report_registry: ReportRegistry,
-            create_request_use_case: CreateReportRequestUseCase,
-            company_snapshot_provider: CompanySnapshotProvider,
-            report_notifier: ReportNotifier,
-            summarizer: ReportSummarizer,
+        self,
+        report_registry: ReportRegistry,
+        create_request_use_case: CreateReportRequestUseCase,
+        company_snapshot_provider: CompanySnapshotProvider,
+        report_notifier: ReportNotifier,
+        summarizer: ReportSummarizer,
     ) -> None:
         self._report_registry: ReportRegistry = report_registry
         self._create_request_use_case = create_request_use_case
@@ -48,12 +50,12 @@ class InngestFinanceReportService:
         self._summarizer = summarizer
 
     async def run_report_generation(
-            self,
-            report_trigger_request: ReportTriggerRequest,
-            ctx: inngest.Context,
+        self,
+        report_trigger_request: ReportTriggerRequest,
+        ctx: inngest.Context,
     ) -> ReportRunResult:
         ticker_symbol = report_trigger_request.ticker
-        report_types: List[ReportType] = report_trigger_request.report_types
+        report_types: list[ReportType] = report_trigger_request.report_types
         step = ctx.step
 
         async def submit_report_request(_report_type: str) -> ReportRequested:
@@ -91,10 +93,7 @@ class InngestFinanceReportService:
         )
 
         results = await ctx.group.parallel(
-            tuple(
-                self._make_thunk(step, rt, report_requested, notification_thread)
-                for rt in report_types
-            ),
+            tuple(self._make_thunk(step, rt, report_requested, notification_thread) for rt in report_types),
             parallel_mode=server_lib.ParallelMode.RACE,
         )
 
@@ -102,12 +101,12 @@ class InngestFinanceReportService:
             ticker=report_requested.ticker.symbol,
             report_types=report_types,
             thread_ref=notification_thread.ref,
-            summaries=dict(zip(report_types, results)),
+            summaries=dict(zip(report_types, results, strict=True)),
         )
 
-    def _make_thunk(self, step, report_type: ReportType,
-                    report_requested: ReportRequested,
-                    notification_thread: NotificationThread):
+    def _make_thunk(
+        self, step, report_type: ReportType, report_requested: ReportRequested, notification_thread: NotificationThread
+    ):
         handler: ReportHandler = self._report_registry.handler_for(report_type)
 
         async def report_pipeline():
@@ -134,8 +133,7 @@ class InngestFinanceReportService:
         return report_pipeline
 
     @staticmethod
-    def _create_attractive_subject(ticker: Ticker, company_info: str,
-                                   current_price: Decimal) -> str:
+    def _create_attractive_subject(ticker: Ticker, company_info: str, current_price: Decimal) -> str:
         pst_time = datetime.datetime.now(ZoneInfo("America/Los_Angeles"))
         date_str = pst_time.strftime("%B %d, %Y")
         return (

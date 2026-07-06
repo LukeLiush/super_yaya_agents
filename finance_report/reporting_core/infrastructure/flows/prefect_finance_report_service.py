@@ -1,30 +1,39 @@
 import datetime
 import logging
 from decimal import Decimal
-from typing import Optional, List
 from zoneinfo import ZoneInfo
 
-from prefect import task, flow
+from prefect import flow, task
 
-from finance_report.reporting_core.infrastructure.flows.prefect_utils import run_name_from
-from finance_report.reporting_core.infrastructure.config.report_usecase_registry import ReportRegistry, ReportHandler
-from finance_report.reporting_core.application.ports.company_snapshot_provider import CompanySnapshotProvider, CompanySnapshot
-from finance_report.reporting_core.application.ports.report_notification import ReportNotifier, NotificationThread
+from finance_report.finance_sdk.schemas import ReportTriggerRequest, ReportType
+from finance_report.reporting_core.application.ports.company_snapshot_provider import (
+    CompanySnapshot,
+    CompanySnapshotProvider,
+)
+from finance_report.reporting_core.application.ports.report_notification import NotificationThread, ReportNotifier
 from finance_report.reporting_core.application.ports.report_summarization import ReportSummarizer
-from finance_report.reporting_core.application.use_cases.create_report_request import CreateReportRequestUseCase, CreateRequestInput
+from finance_report.reporting_core.application.use_cases.create_report_request import (
+    CreateReportRequestUseCase,
+    CreateRequestInput,
+)
 from finance_report.reporting_core.domain.events import ReportRequested
 from finance_report.reporting_core.domain.report_request import ReportRequest
-from finance_report.reporting_core.domain.shared_values import Ticker, ReportPayload
+from finance_report.reporting_core.domain.shared_values import ReportPayload, Ticker
+from finance_report.reporting_core.infrastructure.config.report_usecase_registry import ReportHandler, ReportRegistry
 from finance_report.reporting_core.infrastructure.flows.inngest_finance_report_service import ReportRunResult
-from finance_report.finance_sdk.schemas import ReportTriggerRequest, ReportType
+from finance_report.reporting_core.infrastructure.flows.prefect_utils import run_name_from
 
 logger = logging.getLogger(__name__)
 
 
 @task(name="submit_report_request", retries=3)
-async def _submit_report_request(ticker: Ticker, requested_by: str, ) -> ReportRequested:
+async def _submit_report_request(
+    ticker: Ticker,
+    requested_by: str,
+) -> ReportRequested:
     logger.info("Report request for ticker=%s", ticker.symbol)
     from finance_report.reporting_core.infrastructure.config.container import container
+
     create_request_use_case: CreateReportRequestUseCase = container[CreateReportRequestUseCase]
     report_request: ReportRequest = await create_request_use_case.run(
         CreateRequestInput(ticker=Ticker(symbol=ticker.symbol), requested_by=requested_by)
@@ -33,39 +42,55 @@ async def _submit_report_request(ticker: Ticker, requested_by: str, ) -> ReportR
 
 
 @task(name="fetch_snapshot", retries=3)
-async def _fetch_snapshot(ticker: Ticker, ) -> CompanySnapshot:
+async def _fetch_snapshot(
+    ticker: Ticker,
+) -> CompanySnapshot:
     from finance_report.reporting_core.infrastructure.config.container import container
+
     company_snapshot_provider: CompanySnapshotProvider = container[CompanySnapshotProvider]
     snapshot: CompanySnapshot = await company_snapshot_provider.fetch(ticker)
     return snapshot
 
 
 @task(name="open_slack_thread", retries=3)
-async def _open_slack_thread(subject: str, ) -> NotificationThread:
+async def _open_slack_thread(
+    subject: str,
+) -> NotificationThread:
     from finance_report.reporting_core.infrastructure.config.container import container
+
     report_notifier: ReportNotifier = container[ReportNotifier]
     return await report_notifier.open_thread(subject)
 
 
 @task(name="post_slack_message", retries=3)
-async def _post_slack_message(thread: NotificationThread, report: str, ) -> None:
+async def _post_slack_message(
+    thread: NotificationThread,
+    report: str,
+) -> None:
     from finance_report.reporting_core.infrastructure.config.container import container
+
     report_notifier: ReportNotifier = container[ReportNotifier]
     await report_notifier.post_report(thread, report)
 
 
-@task(task_run_name=run_name_from(
-    lambda p: f"[{p['report_requested'].ticker}] {p['report_type']}",
-    prefix="run_report_pipeline"), retries=3)
-async def _run_report_pipeline(report_requested: ReportRequested,
-                               report_type: ReportType,
-                               thread: NotificationThread, ) -> str:
+@task(
+    task_run_name=run_name_from(
+        lambda p: f"[{p['report_requested'].ticker}] {p['report_type']}", prefix="run_report_pipeline"
+    ),
+    retries=3,
+)
+async def _run_report_pipeline(
+    report_requested: ReportRequested,
+    report_type: ReportType,
+    thread: NotificationThread,
+) -> str:
     from finance_report.reporting_core.infrastructure.config.container import container
+
     report_registry: ReportRegistry = container[ReportRegistry]
     summarizer: ReportSummarizer = container[ReportSummarizer]
     logger.info("Running report pipeline for %s", report_requested.report_id)
     report_handler: ReportHandler = report_registry.handler_for(report_type)
-    report_payload: Optional[ReportPayload] = await report_handler.run(report_requested)
+    report_payload: ReportPayload | None = await report_handler.run(report_requested)
     summary: str = await summarizer.summarize(report_payload)
     if report_payload is not None:
         await _post_slack_message(thread, summary)
@@ -77,8 +102,10 @@ async def finance_report_flow(report_trigger_request: ReportTriggerRequest, requ
     ticker: Ticker = Ticker(symbol=report_trigger_request.ticker)
     report_types = list(dict.fromkeys(report_trigger_request.report_types))
 
-    report_requested: ReportRequested = await _submit_report_request(ticker,
-                                                                     requested_by, )
+    report_requested: ReportRequested = await _submit_report_request(
+        ticker,
+        requested_by,
+    )
 
     snapshot: CompanySnapshot = await _fetch_snapshot(report_requested.ticker)
     subject = _create_attractive_subject(
@@ -90,21 +117,24 @@ async def finance_report_flow(report_trigger_request: ReportTriggerRequest, requ
 
     # # Fan-out: submit all per-report pipelines concurrently.
     futures = [
-        _run_report_pipeline.submit(report_requested, report_type, thread, )
+        _run_report_pipeline.submit(
+            report_requested,
+            report_type,
+            thread,
+        )
         for report_type in report_types
     ]
-    summaries: List[str] = [future.result() for future in futures]
+    summaries: list[str] = [future.result() for future in futures]
 
     return ReportRunResult(
         ticker=report_requested.ticker.symbol,
         report_types=[str(report_type) for report_type in report_types],
         thread_ref=thread.ref,
-        summaries={str(rt): s for rt, s in zip(report_types, summaries)},
+        summaries={str(rt): s for rt, s in zip(report_types, summaries, strict=True)},
     )
 
 
-def _create_attractive_subject(ticker: Ticker, company_info: str,
-                               current_price: Decimal) -> str:
+def _create_attractive_subject(ticker: Ticker, company_info: str, current_price: Decimal) -> str:
     pst_time = datetime.datetime.now(ZoneInfo("America/Los_Angeles"))
     date_str = pst_time.strftime("%B %d, %Y")
     return (
@@ -115,6 +145,7 @@ def _create_attractive_subject(ticker: Ticker, company_info: str,
         f"action, insider moves, and breaking news on *{company_info}*. "
         f"Hang tight! 📈💎🙌"
     )
+
 
 if __name__ == "__main__":
     finance_report_flow.serve(name="my-deployment")

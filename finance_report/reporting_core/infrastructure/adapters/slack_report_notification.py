@@ -3,7 +3,7 @@ import logging
 
 from agno.tools.slack import SlackTools
 
-from finance_report.reporting_core.application.ports.report_notification import ReportNotifier, NotificationThread
+from finance_report.reporting_core.application.ports.report_notification import NotificationThread, ReportNotifier
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,9 @@ class SlackReportNotifier(ReportNotifier):
         if "ts" not in response_data:
             logger.error(f"Failed to start Slack thread: {response_json}")
             return None
-        return NotificationThread(ref=response_data["ts"], )
+        return NotificationThread(
+            ref=response_data["ts"],
+        )
 
     async def post_report(self, thread: NotificationThread, slack_message: str) -> None:
         self._slack_tools.send_message_thread(channel=self._slack_channel, text=slack_message, thread_ts=thread.ref)

@@ -61,9 +61,7 @@ def calculate_statistics(ctx: RunContext[pd.DataFrame], column: str) -> dict[str
     return {k: (float(v) if isinstance(v, (int, float)) else v) for k, v in stats.items()}
 
 
-def detect_anomalies(
-        ctx: RunContext[pd.DataFrame], column: str, threshold: float = 3.0
-) -> list[dict[str, Any]]:
+def detect_anomalies(ctx: RunContext[pd.DataFrame], column: str, threshold: float = 3.0) -> list[dict[str, Any]]:
     """Flag values more than `threshold` standard deviations from the mean."""
     df = ctx.deps
     if column not in df.columns:
@@ -132,9 +130,7 @@ def create_agent() -> PrefectAgent[pd.DataFrame, DataAnalysis]:
     )
     return PrefectAgent(
         agent,
-        model_task_config=TaskConfig(
-            retries=3, retry_delay_seconds=[1.0, 2.0, 4.0], timeout_seconds=60.0
-        ),
+        model_task_config=TaskConfig(retries=3, retry_delay_seconds=[1.0, 2.0, 4.0], timeout_seconds=60.0),
         tool_task_config=TaskConfig(retries=2, retry_delay_seconds=[0.5, 1.0]),
     )
 
@@ -167,8 +163,7 @@ async def analyze_dataset_with_ai() -> DataAnalysis:
 
     print("Running AI analysis...")
     result = await agent.run(
-        "Analyze this sales dataset. Identify patterns, anomalies, "
-        "and provide actionable recommendations.",
+        "Analyze this sales dataset. Identify patterns, anomalies, and provide actionable recommendations.",
         deps=df,
     )
 

@@ -1,5 +1,4 @@
 import logging
-from typing import Dict
 
 from agno.agent import Agent
 from agno.models.base import Model
@@ -12,7 +11,7 @@ from finance_report.reporting_core.domain.shared_values import ReportPayload
 
 logger = logging.getLogger(__name__)
 
-FEW_SHOT: Dict[str, str] = {
+FEW_SHOT: dict[str, str] = {
     PriceReport.report_type(): (
         "Example output:\n"
         "*Price Ranges*\n"
@@ -61,16 +60,12 @@ class AgnoReportSummarizer(ReportSummarizer):
         example: str = FEW_SHOT[report.report_type()]
         logger.info(f"here is my example: \n\n {example}")
         prompt = (
-            f"Summarize this report. Emphasize: {report.summary_focus()}.\n\n"
-            f"{example}\n"
-            f"{report.to_prompt_context()}"
+            f"Summarize this report. Emphasize: {report.summary_focus()}.\n\n{example}\n{report.to_prompt_context()}"
         )
         result = self._agent.run(prompt)
         return result.content
 
     @classmethod
     def from_model(cls, model: Model, *, instructions=None) -> "AgnoReportSummarizer":
-        agent = Agent(model=model,
-                      instructions=instructions or cls._DEFAULT_INSTRUCTIONS,
-                      markdown=True)
+        agent = Agent(model=model, instructions=instructions or cls._DEFAULT_INSTRUCTIONS, markdown=True)
         return cls(agent)

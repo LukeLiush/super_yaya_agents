@@ -1,5 +1,5 @@
 import uuid
-from typing import Callable
+from collections.abc import Callable
 
 
 def _safe_label(text: str, max_len: int = 50) -> str:
@@ -25,6 +25,7 @@ def run_name_from(extract: Callable[[dict], str], prefix: str = "", max_len: int
 
     def _name() -> str:
         from prefect.runtime import task_run
+
         text = extract(task_run.parameters)
         label = _safe_label(text, max_len)
         return f"{prefix}: {label}".strip()

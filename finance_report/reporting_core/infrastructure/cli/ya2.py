@@ -17,9 +17,7 @@ from finance_report.reporting_core.infrastructure.adapters.edgar_insider_adapter
 container = Container()
 _is_production = os.getenv("INNGEST_IS_PRODUCTION", "false").lower() == "true"
 _inngest_client = inngest.Inngest(
-    app_id="finance-report-app",
-    is_production=_is_production,
-    serializer=PydanticSerializer()
+    app_id="finance-report-app", is_production=_is_production, serializer=PydanticSerializer()
 )
 
 env_path: Path = Path(__file__).parent.parent.parent.parent / ".env"
@@ -50,9 +48,9 @@ async def main():
             id="qwen3.7-plus",
             api_key=ali_api_key,
             base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
-            #base_url="https://dashscope.aliyuncs.com/api/v1"
+            # base_url="https://dashscope.aliyuncs.com/api/v1"
         ),
-        markdown=True
+        markdown=True,
     )
 
     # Example usage:

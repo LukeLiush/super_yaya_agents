@@ -1,10 +1,9 @@
 import asyncio
-from typing import List
 
 import typer
 from rich.console import Console
 
-from finance_report.finance_sdk.http_client import ReportTriggerRequest, HttpFinanceReportClient
+from finance_report.finance_sdk.http_client import HttpFinanceReportClient
 from finance_report.finance_sdk.schemas import ReportTriggerRequest, ReportType
 
 app = typer.Typer(name="yaya", help="Yaya CLI for investment analysis")
@@ -18,8 +17,8 @@ def get_client():
     return HttpFinanceReportClient()
 
 
-def _get_selected_report_types(ctx: typer.Context) -> List[ReportType]:
-    selected_types: List[ReportType] = []
+def _get_selected_report_types(ctx: typer.Context) -> list[ReportType]:
+    selected_types: list[ReportType] = []
     # 1. Get all valid enum strings: ['--price', '--insider']
     valid_flags = {f"--{rt.value}": rt for rt in ReportType}
 
@@ -42,8 +41,8 @@ def _get_selected_report_types(ctx: typer.Context) -> List[ReportType]:
     help=f"Trigger a new report. Available flags: {', '.join(['--' + rt.value for rt in ReportType])}",
 )
 def trigger(
-        ctx: typer.Context,
-        ticker: str = typer.Argument(..., help="The stock ticker symbol"),
+    ctx: typer.Context,
+    ticker: str = typer.Argument(..., help="The stock ticker symbol"),
 ):
     selected_types = _get_selected_report_types(ctx)
 
@@ -65,7 +64,7 @@ def trigger(
 
 @finance_app.command()
 def show(
-        report_id: str = typer.Argument(..., help="The report ID to show"),
+    report_id: str = typer.Argument(..., help="The report ID to show"),
 ):
     """Show report results for a given report ID."""
     # Since we don't have a specific 'show' endpoint in the current SDK that matches this exact need
@@ -73,12 +72,14 @@ def show(
     # Looking at the previous design, 'show' was mentioned.
     console.print(f"Fetching results for report ID: {report_id}...")
     console.print(
-        "[yellow]Show command is partially implemented. In a real scenario, this would fetch data from the API.[/yellow]")
+        "[yellow]Show command is partially implemented. "
+        "In a real scenario, this would fetch data from the API.[/yellow]"
+    )
 
 
 @finance_app.command()
 def status(
-        report_id: str = typer.Argument(..., help="The report ID to check status for"),
+    report_id: str = typer.Argument(..., help="The report ID to check status for"),
 ):
     """Check the status of a report generation."""
     console.print(f"Checking status for report ID: {report_id}...")

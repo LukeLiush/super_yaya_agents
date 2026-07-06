@@ -24,12 +24,8 @@ gemini_model = Gemini(
 )
 
 # Two independent researchers — they don't depend on each other
-news_researcher = Agent(name="News Researcher",
-                        model=gemini_model,
-                        tools=[HackerNewsTools()])
-finance_researcher = Agent(name="Finance Researcher",
-                           model=gemini_model,
-                           tools=[YFinanceTools()])
+news_researcher = Agent(name="News Researcher", model=gemini_model, tools=[HackerNewsTools()])
+finance_researcher = Agent(name="Finance Researcher", model=gemini_model, tools=[YFinanceTools()])
 
 # Downstream steps that depend on the combined research
 writer = Agent(name="Writer", model=gemini_model)
@@ -59,7 +55,7 @@ workflow = Workflow(
 # --- register it with AgentOS ---
 agent_os = AgentOS(
     id="my-os",
-    workflows=[workflow],     # <-- the key bit: pass workflows=[...]
+    workflows=[workflow],  # <-- the key bit: pass workflows=[...]
 )
 app = agent_os.get_app()
 

@@ -1,19 +1,20 @@
 import random
 import time
-from typing import Literal
+from typing import ClassVar, Literal
 
-from prefect import flow, task, pause_flow_run
+from prefect import flow, pause_flow_run, task
 from prefect.input import RunInput
 from prefect.runtime import deployment, flow_run
 
 
 class AdditionalItems(RunInput):
     # the human fills this in via the UI form
-    extra_items: str = ""   # comma-separated items to add, e.g. "refunds, invoices"
+    extra_items: str = ""  # comma-separated items to add, e.g. "refunds, invoices"
+
 
 class ItemSelection(RunInput):
     # rendered as a selection in the UI because the type is a constrained Literal
-    selected_items: list[Literal["refunds", "invoices", "shipments"]] = []
+    selected_items: ClassVar[list[Literal["refunds", "invoices", "shipments"]]] = []
 
 
 @task
@@ -30,7 +31,6 @@ def process(table: str):
     print(f"Sleeping for {sleep_time:.2f} seconds...")
     time.sleep(sleep_time)
     return f"{table}_done"
-
 
 
 @flow(log_prints=True, name="Fanout Flow")
@@ -70,7 +70,7 @@ if __name__ == "__main__":
     import asyncio
 
     asyncio.run(fanout_flow())
-    #fanout_flow.serve()
+    # fanout_flow.serve()
     # fanout_flow.deploy(
     #     name="my_deploy_1",
     #     work_pool_name="docker_worker_pool1",

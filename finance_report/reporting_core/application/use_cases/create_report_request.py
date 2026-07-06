@@ -13,8 +13,7 @@ TOutput = TypeVar("TOutput", covariant=True)
 
 
 class UseCase(Protocol[TInput, TOutput]):
-    async def run(self, request: TInput) -> TOutput:
-        ...
+    async def run(self, request: TInput) -> TOutput: ...
 
 
 class CreateRequestInput(BaseModel):
@@ -23,9 +22,11 @@ class CreateRequestInput(BaseModel):
 
 
 class CreateReportRequestUseCase(UseCase[CreateRequestInput, ReportRequest]):
-    def __init__(self,
-                 split_provider: SplitProvider,
-                 uow: UnitOfWork, ) -> None:
+    def __init__(
+        self,
+        split_provider: SplitProvider,
+        uow: UnitOfWork,
+    ) -> None:
         self._split_provider = split_provider
         self._uow: UnitOfWork = uow
 

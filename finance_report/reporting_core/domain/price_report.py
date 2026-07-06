@@ -1,9 +1,8 @@
 from datetime import date as Date
 from decimal import Decimal
 from enum import Enum
-from typing import Tuple, List, Optional
 
-from finance_report.reporting_core.domain.shared_values import ValueObject, ReportId, ReportPayload, Provenance
+from finance_report.reporting_core.domain.shared_values import Provenance, ReportId, ReportPayload, ValueObject
 
 
 class WindowUnit(str, Enum):
@@ -54,6 +53,7 @@ class HighLowEntry(ValueObject):
 
 class DailyPriceBar(ValueObject):
     """A single raw OHLCV bar as fetched from the data source — reproduction evidence."""
+
     date: Date
     open: Decimal
     high: Decimal
@@ -65,7 +65,7 @@ class DailyPriceBar(ValueObject):
 class PriceReport(ReportPayload):
     latest_close: Decimal | None = None
     high_low_entries: tuple[HighLowEntry, ...] = ()
-    price_bars: Tuple[DailyPriceBar, ...] = ()
+    price_bars: tuple[DailyPriceBar, ...] = ()
 
     def to_prompt_context(self) -> str:
         def fmt(x) -> str:
@@ -120,8 +120,14 @@ class PriceReport(ReportPayload):
         )
 
     @classmethod
-    def create(cls, report_id: ReportId, price_bars: Tuple[DailyPriceBar, ...], latest_close, windows: List[Window],
-               provenance: Optional[Provenance] = None):
+    def create(
+        cls,
+        report_id: ReportId,
+        price_bars: tuple[DailyPriceBar, ...],
+        latest_close,
+        windows: list[Window],
+        provenance: Provenance | None = None,
+    ):
         # 1. Implementation of high_low_entries creation
         high_low_entries = []
 
@@ -144,7 +150,7 @@ class PriceReport(ReportPayload):
             latest_close=latest_close,
             price_bars=price_bars,
             high_low_entries=tuple(high_low_entries),
-            provenance=provenance
+            provenance=provenance,
         )
 
     @staticmethod

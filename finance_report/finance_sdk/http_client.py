@@ -1,22 +1,21 @@
 import httpx
 
 from finance_report.finance_sdk.contract import FinanceReportService
-from finance_report.finance_sdk.schemas import ReportTriggerResponse, ReportTriggerRequest
+from finance_report.finance_sdk.schemas import ReportTriggerRequest, ReportTriggerResponse
 
 
 class HttpFinanceReportClient(FinanceReportService):
-
     def __init__(
-            self,
-            base_url: str = "http://127.0.0.1:8000",  # your FastAPI app, not Inngest's 8288
-            timeout_in_seconds: int = 10,
+        self,
+        base_url: str = "http://127.0.0.1:8000",  # your FastAPI app, not Inngest's 8288
+        timeout_in_seconds: int = 10,
     ) -> None:
         self.trigger_url = f"{base_url.rstrip('/')}/report/trigger"
         self.timeout_in_seconds = timeout_in_seconds
 
     async def trigger_report_generation(
-            self,
-            report_trigger_request: ReportTriggerRequest,
+        self,
+        report_trigger_request: ReportTriggerRequest,
     ) -> ReportTriggerResponse:
         """Trigger report generation by calling the FastAPI /report/trigger endpoint.
 

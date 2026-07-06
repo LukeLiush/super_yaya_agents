@@ -1,7 +1,8 @@
 import json
 import logging
 import sqlite3
-from typing import Any, Callable, Dict, Type, Optional, TypeVar
+from collections.abc import Callable
+from typing import Any, ClassVar, TypeVar
 
 from finance_report.reporting_core.application.ports.report_repository import ReportPayloadRepository
 from finance_report.reporting_core.domain.insider_report import InsiderReport
@@ -12,7 +13,7 @@ from finance_report.reporting_core.domain.shared_values import ReportPayload
 logger = logging.getLogger(__name__)
 T = TypeVar("T", bound=ReportPayload)
 
-SCHEMA_UPGRADERS: Dict[str, Dict[int, Callable[[Dict[str, Any]], Dict[str, Any]]]] = {
+SCHEMA_UPGRADERS: dict[str, dict[int, Callable[[dict[str, Any]], dict[str, Any]]]] = {
     "price": {},
     "news": {},
     "insider": {},
@@ -20,7 +21,7 @@ SCHEMA_UPGRADERS: Dict[str, Dict[int, Callable[[Dict[str, Any]], Dict[str, Any]]
 
 
 class SqliteReportPayloadRepository(ReportPayloadRepository):
-    TYPE_MAP = {
+    TYPE_MAP: ClassVar[dict[str, type[ReportPayload]]] = {
         PriceReport.report_type: PriceReport,
         NewsReport.report_type: NewsReport,
         InsiderReport.report_type: InsiderReport,
@@ -69,7 +70,7 @@ class SqliteReportPayloadRepository(ReportPayloadRepository):
             ),
         )
 
-    def get_by_id(self, report_id: str, report_type: Optional[Type[T]] = None) -> T:
+    def get_by_id(self, report_id: str, report_type: type[T] | None = None) -> T:
         row = self._connection.execute(
             "SELECT report_type, report_id, generated_at, provenance, payload FROM reports WHERE report_id = ?",
             (report_id,),
@@ -80,7 +81,7 @@ class SqliteReportPayloadRepository(ReportPayloadRepository):
 
         return self._row_to_payload(row, report_type)
 
-    def _row_to_payload(self, row: sqlite3.Row, expected_cls: Optional[Type[T]] = None) -> T:
+    def _row_to_payload(self, row: sqlite3.Row, expected_cls: type[T] | None = None) -> T:
         report_type = row["report_type"]
         cls = expected_cls or self.TYPE_MAP.get(report_type)
 
