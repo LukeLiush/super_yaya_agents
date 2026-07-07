@@ -1,3 +1,5 @@
+from typing import Any, cast
+
 from finance_report.reporting_core.application.news.provider import NewsProvider
 from finance_report.reporting_core.application.ports.report_repository import ReportPayloadRepository
 from finance_report.reporting_core.application.ports.unit_of_work import UnitOfWork
@@ -20,7 +22,7 @@ class GenerateNewsReportUseCase(UseCase[ReportRequested, NewsReport | None]):
             items=news_items,
             provenance=provenance,
         )
-        with self._uow as uow:
-            uow.repository(ReportPayloadRepository).save(news_report)
+        with cast(Any, self._uow) as uow:
+            uow.repository(cast(Any, ReportPayloadRepository)).save(news_report)
 
         return news_report

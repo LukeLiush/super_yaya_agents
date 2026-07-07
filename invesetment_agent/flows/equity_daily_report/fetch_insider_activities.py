@@ -2,6 +2,7 @@ import asyncio
 import datetime
 from datetime import date
 from pathlib import Path
+from typing import Any, cast
 
 import pandas as pd
 from dotenv import load_dotenv
@@ -135,7 +136,7 @@ def get_insider_trading_activities(get_insider_activity_arg: GetInsiderActivityA
         combined_df = pd.concat(dataframes, ignore_index=True)
         sanitized_df = combined_df.replace({pd.NA: None, float("nan"): None})
 
-        return sanitized_df.to_json(orient="records", date_format="iso")
+        return str(sanitized_df.to_json(orient="records", date_format="iso"))
     except Exception as e:
         logger.error(
             "Critical failure pulling SEC records for %s: %s", get_insider_activity_arg.ticker, e, exc_info=True
@@ -191,11 +192,11 @@ async def get_insider_trading_activities_task(
     logger.debug("Executing agent run loop...")
     result = await preferred_agent.run(user_prompt=user_prompt)
     logger.info("Agent execution completed successfully for %s", get_insider_activity_arg.ticker)
-    return result.output
+    return cast(InsiderTradingActivities, result.output)
 
 
 @flow
-async def test_flow():
+async def test_flow() -> None:
     logger = get_run_logger()
     _env_path: Path = Path(__file__).parent.parent / ".env"
     if _env_path.exists():
@@ -207,7 +208,7 @@ async def test_flow():
     logger.info("Submitting insider trading pipeline job parameter values: %s", args.model_dump())
 
     future = get_insider_trading_activities_task.submit(args)
-    result: InsiderTradingActivities = future.result()
+    result: InsiderTradingActivities = await future.result()
 
     logger.info(
         "Workflow pipeline completed. Final Slack text generation payload len: %d",
@@ -219,5 +220,7 @@ async def test_flow():
 
 
 if __name__ == "__main__":
+    from typing import Any, cast
+
     set_identity("user@exampe.com")
-    asyncio.run(test_flow())
+    asyncio.run(cast(Any, test_flow)())

@@ -1,3 +1,4 @@
+import abc
 import traceback
 import uuid
 from datetime import UTC, date, datetime, timezone
@@ -72,8 +73,10 @@ class ReportPayload(ValueObject):
     provenance: Provenance | None = None
     generated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
+    @abc.abstractmethod
     def to_prompt_context(self) -> str: ...
 
+    @abc.abstractmethod
     def summary_focus(self) -> str: ...
 
     @classmethod

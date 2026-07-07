@@ -1,4 +1,5 @@
 import logging
+from typing import Any, cast
 
 from fastapi import FastAPI
 
@@ -19,6 +20,6 @@ async def health():
 
 @_app.post("/report/trigger", response_model=ReportTriggerResponse, status_code=202)
 async def trigger_report(request: ReportTriggerRequest):
-    asgi: ASGIAdapter = container[ASGIAdapter]
+    asgi: ASGIAdapter = container[cast(Any, ASGIAdapter)]
     asgi.attach_to_app(_app)
     return await asgi.trigger(request)

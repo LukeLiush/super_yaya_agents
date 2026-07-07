@@ -63,7 +63,7 @@ class AgnoReportSummarizer(ReportSummarizer):
             f"Summarize this report. Emphasize: {report.summary_focus()}.\n\n{example}\n{report.to_prompt_context()}"
         )
         result = self._agent.run(prompt)
-        return result.content
+        return str(result.content)
 
     @classmethod
     def from_model(cls, model: Model, *, instructions=None) -> "AgnoReportSummarizer":

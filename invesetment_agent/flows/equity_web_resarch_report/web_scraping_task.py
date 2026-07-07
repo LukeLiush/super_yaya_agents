@@ -201,4 +201,6 @@ async def test_webscraping_flow():
 
 
 if __name__ == "__main__":
-    asyncio.run(test_webscraping_flow())
+    from typing import Any, cast
+
+    asyncio.run(cast(Any, test_webscraping_flow)())

@@ -1,3 +1,4 @@
+from typing import cast
 from agno.tools.yfinance import YFinanceTools
 from prefect import get_run_logger, task
 from pydantic import BaseModel, Field
@@ -116,7 +117,7 @@ async def fetch_asset_news(ticker: str) -> News:
 
     if result and result.output:
         logger.info(f"Successfully analyzed {len(result.output.articles)} articles for {ticker}.")
-        return result.output
+        return cast(News, result.output)
 
     logger.warning(f"No news articles were found or analyzed for ticker: {ticker}")
     return News.empty(ticker)

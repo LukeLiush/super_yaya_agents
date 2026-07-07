@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Optional, cast
 
 from prefect.blocks.system import Secret
 
@@ -100,7 +100,9 @@ class ConfiguredModelProvider(ModelProvider):
     @staticmethod
     def _from_secret(spec: _ProviderSpec) -> str | None:
         try:
-            return Secret.load(spec.secret_name).get()
+            # Prefect Secret.load is usually sync, but mypy might think it's async or returns Any
+            secret = cast(Any, Secret.load(spec.secret_name))
+            return str(secret.get())
         except Exception:
             return None  # block missing / no server reachable -> fall back
 

@@ -40,7 +40,7 @@ workflow = Workflow(
     name="Content Creation Pipeline",
     steps=[
         # These two run AT THE SAME TIME
-        Parallel(research_news_step, research_finance_step, name="Research Phase"),
+        Parallel([research_news_step, research_finance_step], name="Research Phase"),
         # Then the rest run sequentially, receiving BOTH parallel outputs
         write_step,
         review_step,

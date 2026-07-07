@@ -28,7 +28,8 @@ def _get_selected_report_types(ctx: typer.Context) -> list[ReportType]:
             selected_types.append(valid_flags[arg])
         else:
             # Raise error for truly unknown options
-            raise typer.BadOption(f"Unknown option: {arg}")
+            # typer.BadParameter is a common alternative, as BadOption is not in all versions
+            raise typer.BadParameter(f"Unknown option: {arg}")
 
     # Default fallback
     if not selected_types:

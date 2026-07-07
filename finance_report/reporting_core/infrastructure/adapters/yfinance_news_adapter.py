@@ -53,7 +53,12 @@ class _YFNewsRaw(BaseModel):
 
     def to_news_item(self) -> NewsItem | None:
         c = self.content
-        url = (c.canonicalUrl.url if c.canonicalUrl else None) or (c.clickThroughUrl.url if c.clickThroughUrl else None)
+        if c is None:
+            return None
+
+        url = (c.canonicalUrl.url if c.canonicalUrl and c.canonicalUrl.url else None) or (
+            c.clickThroughUrl.url if c.clickThroughUrl and c.clickThroughUrl.url else None
+        )
         published_at = c.pubDate or c.displayTime
         publisher = c.provider.displayName if c.provider else None
 

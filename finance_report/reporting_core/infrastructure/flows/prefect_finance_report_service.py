@@ -1,6 +1,8 @@
+import asyncio
 import datetime
 import logging
 from decimal import Decimal
+from typing import Any, cast
 from zoneinfo import ZoneInfo
 
 from prefect import flow, task
@@ -45,9 +47,11 @@ async def _submit_report_request(
 async def _fetch_snapshot(
     ticker: Ticker,
 ) -> CompanySnapshot:
+    from typing import Any
+
     from finance_report.reporting_core.infrastructure.config.container import container
 
-    company_snapshot_provider: CompanySnapshotProvider = container[CompanySnapshotProvider]
+    company_snapshot_provider: CompanySnapshotProvider = container[cast(Any, CompanySnapshotProvider)]
     snapshot: CompanySnapshot = await company_snapshot_provider.fetch(ticker)
     return snapshot
 
@@ -56,10 +60,15 @@ async def _fetch_snapshot(
 async def _open_slack_thread(
     subject: str,
 ) -> NotificationThread:
+    from typing import Any
+
     from finance_report.reporting_core.infrastructure.config.container import container
 
-    report_notifier: ReportNotifier = container[ReportNotifier]
-    return await report_notifier.open_thread(subject)
+    report_notifier: ReportNotifier = container[cast(Any, ReportNotifier)]
+    res = await report_notifier.open_thread(subject)
+    if res is None:
+        raise ValueError("Failed to open Slack thread")
+    return res
 
 
 @task(name="post_slack_message", retries=3)
@@ -67,9 +76,11 @@ async def _post_slack_message(
     thread: NotificationThread,
     report: str,
 ) -> None:
+    from typing import Any
+
     from finance_report.reporting_core.infrastructure.config.container import container
 
-    report_notifier: ReportNotifier = container[ReportNotifier]
+    report_notifier: ReportNotifier = container[cast(Any, ReportNotifier)]
     await report_notifier.post_report(thread, report)
 
 
@@ -84,16 +95,19 @@ async def _run_report_pipeline(
     report_type: ReportType,
     thread: NotificationThread,
 ) -> str:
+    from typing import Any
+
     from finance_report.reporting_core.infrastructure.config.container import container
 
     report_registry: ReportRegistry = container[ReportRegistry]
-    summarizer: ReportSummarizer = container[ReportSummarizer]
+    summarizer: ReportSummarizer = container[cast(Any, ReportSummarizer)]
     logger.info("Running report pipeline for %s", report_requested.report_id)
     report_handler: ReportHandler = report_registry.handler_for(report_type)
     report_payload: ReportPayload | None = await report_handler.run(report_requested)
+    if report_payload is None:
+        return "No data for this report"
     summary: str = await summarizer.summarize(report_payload)
-    if report_payload is not None:
-        await _post_slack_message(thread, summary)
+    await _post_slack_message(thread, summary)
     return summary
 
 
@@ -115,7 +129,7 @@ async def finance_report_flow(report_trigger_request: ReportTriggerRequest, requ
     )
     thread: NotificationThread = await _open_slack_thread(subject)
 
-    # # Fan-out: submit all per-report pipelines concurrently.
+    # Fan-out: submit all per-report pipelines concurrently.
     futures = [
         _run_report_pipeline.submit(
             report_requested,
@@ -124,7 +138,15 @@ async def finance_report_flow(report_trigger_request: ReportTriggerRequest, requ
         )
         for report_type in report_types
     ]
-    summaries: list[str] = [future.result() for future in futures]
+    # In Prefect, .result() on a future returns the result directly.
+    # If the flow is async, we may need to handle it.
+    summaries: list[str] = []
+    for future in futures:
+        # res can be str or Coroutine[Any, Any, str]
+        res: Any = future.result()
+        if asyncio.iscoroutine(res):
+            res = await res
+        summaries.append(str(res))
 
     return ReportRunResult(
         ticker=report_requested.ticker.symbol,
@@ -139,7 +161,7 @@ def _create_attractive_subject(ticker: Ticker, company_info: str, current_price:
     date_str = pst_time.strftime("%B %d, %Y")
     return (
         f"🚀 *DAILY EQUITY INTELLIGENCE BRIEF* | {date_str}\n"
-        f"Targeting: *{company_info}* (`{ticker}`) | Current Price: *${current_price:,.2f}*\n"
+        f"Targeting: *{company_info}* (`{ticker.symbol}`) | Current Price: *${current_price:,.2f}*\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
         f"Greetings! 👋 I'm diving deep into the markets for the latest price "
         f"action, insider moves, and breaking news on *{company_info}*. "

@@ -1,6 +1,8 @@
 import datetime
 import logging
+from collections.abc import Sequence
 from decimal import Decimal
+from typing import Any, cast
 from zoneinfo import ZoneInfo
 
 import inngest.fast_api
@@ -29,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 class ReportRunResult(BaseModel):
     ticker: str
-    report_types: list[str]
+    report_types: Sequence[str]
     thread_ref: str | None
     summaries: dict[str, str]  # report_type -> summary
 
@@ -65,18 +67,16 @@ class InngestFinanceReportService:
             )
             return report_request.report_requested()
 
-        report_requested: ReportRequested = await step.run(
+        report_requested = await cast(Any, step).run(
             "submit-report-request",
             submit_report_request,
             "price-report",
-            output_type=ReportRequested,
         )
 
-        company_snapshot: CompanySnapshot = await step.run(
+        company_snapshot = await cast(Any, step).run(
             "fetching_company_snapshot",
             self._company_snapshot_provider.fetch,
             report_requested.ticker,
-            output_type=CompanySnapshot,
         )
 
         subject = self._create_attractive_subject(
@@ -85,23 +85,21 @@ class InngestFinanceReportService:
             current_price=company_snapshot.last_price,
         )
 
-        notification_thread: NotificationThread = await step.run(
+        notification_thread = await cast(Any, step).run(
             "creating_slack_thread",
             self._report_notifier.open_thread,
             subject,
-            output_type=NotificationThread,
         )
 
         results = await ctx.group.parallel(
             tuple(self._make_thunk(step, rt, report_requested, notification_thread) for rt in report_types),
-            parallel_mode=server_lib.ParallelMode.RACE,
         )
 
         return ReportRunResult(
             ticker=report_requested.ticker.symbol,
-            report_types=report_types,
+            report_types=[str(rt) for rt in report_types],
             thread_ref=notification_thread.ref,
-            summaries=dict(zip(report_types, results, strict=True)),
+            summaries=dict(zip([str(rt) for rt in report_types], results, strict=True)),
         )
 
     def _make_thunk(
@@ -109,7 +107,7 @@ class InngestFinanceReportService:
     ):
         handler: ReportHandler = self._report_registry.handler_for(report_type)
 
-        async def report_pipeline():
+        async def report_pipeline() -> str:
             report: ReportPayload = await step.run(
                 f"{report_type}-report",
                 handler.run,
@@ -138,7 +136,7 @@ class InngestFinanceReportService:
         date_str = pst_time.strftime("%B %d, %Y")
         return (
             f"🚀 *DAILY EQUITY INTELLIGENCE BRIEF* | {date_str}\n"
-            f"Targeting: *{company_info}* (`{ticker}`) | Current Price: *${current_price:,.2f}*\n"
+            f"Targeting: *{company_info}* (`{ticker.symbol}`) | Current Price: *${current_price:,.2f}*\n"
             f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
             f"Greetings! 👋 I'm diving deep into the markets for the latest price "
             f"action, insider moves, and breaking news on *{company_info}*. "

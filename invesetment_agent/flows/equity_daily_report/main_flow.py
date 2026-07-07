@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 from pathlib import Path
+from typing import Any, cast
 
 from agno.tools.slack import SlackTools
 from dotenv import load_dotenv
@@ -27,7 +28,7 @@ def init(logger: logging.Logger):
 
 @flow
 async def build_flow(tickers: list[str]):
-    logger: logging.Logger = get_run_logger()
+    logger = cast(Any, get_run_logger())
     init(logger)
     logger.info("Starting build_flow with tickers: %s", tickers)
     slack_bot_token = os.environ.get("SLACK_BOT_TOKEN")
@@ -40,7 +41,10 @@ async def build_flow(tickers: list[str]):
         for ticker in tickers
     ]
     for future in futures:
-        future.result()
+        # In Prefect, .result() on a future in an async flow returns the result directly.
+        res = future.result()
+        if asyncio.iscoroutine(res):
+            await res
 
 
 if __name__ == "__main__":

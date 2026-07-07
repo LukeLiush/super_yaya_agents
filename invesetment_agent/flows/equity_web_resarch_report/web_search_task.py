@@ -1,5 +1,5 @@
 import json
-from typing import Any
+from typing import Any, Literal, cast
 
 from agno.tools.websearch import WebSearchTools
 from prefect import get_run_logger, task
@@ -28,9 +28,12 @@ class EmptyResults(Exception):
     """Raised when the news search returns no items, to trigger a retry."""
 
 
-def _to_timelimit(time_range: TimeRange) -> str:
+def _to_timelimit(time_range: TimeRange) -> Literal["d", "w", "m", "y"]:
     try:
-        return _TIMELIMIT_MAP[time_range]
+        limit = _TIMELIMIT_MAP[time_range]
+        if limit in ("d", "w", "m", "y"):
+            return limit  # type: ignore[return-value]
+        raise ValueError(f"mapped limit {limit!r} is not valid")
     except KeyError as err:
         raise ValueError(f"invalid time_range: {time_range!r} (use day/week/month/year)") from err
 
@@ -41,7 +44,7 @@ def _build_ddg(time_range: TimeRange, backend: str) -> WebSearchTools:
     return WebSearchTools(
         enable_news=True,
         enable_search=False,
-        timelimit=timelimit,
+        timelimit=cast(Any, timelimit),
         region="us-en",
         backend=backend,
     )

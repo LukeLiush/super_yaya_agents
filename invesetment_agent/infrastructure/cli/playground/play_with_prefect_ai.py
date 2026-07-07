@@ -19,7 +19,7 @@ from __future__ import annotations
 import asyncio
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 from dotenv import load_dotenv
@@ -155,8 +155,8 @@ def create_sample_dataset() -> pd.DataFrame:
 @flow(name="ai-data-analyst", log_prints=True)
 async def analyze_dataset_with_ai() -> DataAnalysis:
     print("Preparing dataset...")
-    df = create_sample_dataset()
-    print(f"Dataset shape: {df.shape}")
+    df = cast(pd.DataFrame, create_sample_dataset())
+    print(f"Dataset shape: {getattr(df, 'shape', 'unknown')}")
 
     print("Initializing agent...")
     agent = create_agent()
@@ -168,7 +168,7 @@ async def analyze_dataset_with_ai() -> DataAnalysis:
     )
 
     print(result.output)  # uses the __str__ above
-    return result.output
+    return cast(DataAnalysis, result.output)
 
 
 # --------------------------------------------------------------------------

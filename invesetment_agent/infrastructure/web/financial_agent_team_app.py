@@ -1,4 +1,5 @@
 import os
+from typing import Any, cast
 
 import boto3
 from agno.agent import Agent, RemoteAgent
@@ -62,7 +63,11 @@ agent_team = Team(
     markdown=True,
 )
 
-agent_os = AgentOS(agents=[m for m in (agent_team.members or []) if isinstance(m, (Agent, RemoteAgent))])
+members = agent_team.members or []
+if callable(members):
+    members = members()
+
+agent_os = AgentOS(agents=[m for m in cast(list[Any], members) if isinstance(m, (Agent, RemoteAgent))])
 app = agent_os.get_app()
 
 if __name__ == "__main__":

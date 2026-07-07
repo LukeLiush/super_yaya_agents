@@ -1,4 +1,5 @@
 import logging
+from typing import TYPE_CHECKING
 
 from fastapi import FastAPI
 from prefect.deployments import run_deployment
@@ -7,6 +8,9 @@ from finance_report.finance_sdk.schemas import ReportTriggerRequest, ReportTrigg
 from finance_report.reporting_core.infrastructure.config.settings import settings
 from finance_report.reporting_core.infrastructure.web.asgi_adapter import ASGIAdapter
 
+if TYPE_CHECKING:
+    from prefect.client.schemas.objects import FlowRun
+
 logger = logging.getLogger(__name__)
 
 
@@ -14,7 +18,7 @@ class PrefectASGI(ASGIAdapter):
     async def trigger(self, request: ReportTriggerRequest) -> ReportTriggerResponse:
         # result: ReportRunResult = await finance_report_flow(request, requested_by="shua@")
 
-        flow_run = await run_deployment(
+        flow_run: FlowRun = await run_deployment(  # type: ignore[misc, assignment]
             name=settings.prefect_flow_name,
             parameters={"report_trigger_request": request.model_dump(), "requested_by": "api"},
             timeout=0,  # don't wait for completion — return as soon as it's scheduled

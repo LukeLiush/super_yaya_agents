@@ -25,13 +25,14 @@ class Settings(BaseSettings):
     prefect_api_url: str = Field(alias="PREFECT_API_URL", default="http://localhost:4200/api")
     # inngest_api_key: str = Field(alias="INNGEST_API_KEY")
     inngest_base_url: str = Field(alias="INNGEST_BASE_URL", default="https://api.inngest.com/v1")
-    dashscope_api_key: str = Field(alias="DASHSCOPE_API_KEY")
+    dashscope_api_key: str = Field(alias="DASHSCOPE_API_KEY", default="")
     dashscope_base_url: str = Field(alias="QWEN_BASE_URL", default="https://dashscope.aliyuncs.com/compatible-mode/v1")
     is_production: bool = Field(
         alias="INNGEST_IS_PRODUCTION", default=False, description="Whether the app is running in production mode"
     )
-    slack_bot_token: str = Field(alias="SLACK_BOT_TOKEN")  # required, no default
+    slack_bot_token: str = Field(alias="SLACK_BOT_TOKEN", default="")  # required, no default
     slack_channel_id: str = Field(alias="SLACK_CHANNEL_ID", default="#super-yaya")
+    prefect_flow_name: str = Field(alias="PREFECT_FLOW_NAME", default="finance-report-flow")
 
     @property
     def inngest_enabled(self) -> bool:

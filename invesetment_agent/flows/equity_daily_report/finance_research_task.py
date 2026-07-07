@@ -80,7 +80,7 @@ def get_1_year_historical_stock_prices(
     Fetch the last 1 year of historical daily stock prices for a given ticker.
     Returns a JSON string of historical OHLC data.
     """
-    return ctx.deps.get_historical_stock_prices(ticker, period="1y", interval="1d")
+    return str(ctx.deps.get_historical_stock_prices(ticker, period="1y", interval="1d"))
 
 
 def get_insider_trading_activities(ticker: str, recent_days: int = 90) -> str:
@@ -112,7 +112,7 @@ def get_insider_trading_activities(ticker: str, recent_days: int = 90) -> str:
     combined_df = pd.concat(dataframes, ignore_index=True)
 
     # CONVERSION STEP: Convert DataFrame to JSON string for Pydantic compatibility
-    return combined_df.to_json(orient="records", date_format="iso")
+    return str(combined_df.to_json(orient="records", date_format="iso"))
 
 
 def _build_agent(yfinance_tools: YFinanceTools) -> PrefectAgent:
@@ -158,7 +158,7 @@ def _build_agent(yfinance_tools: YFinanceTools) -> PrefectAgent:
 
 
 @flow
-async def test_flow():
+async def test_flow() -> None:
     logger = get_run_logger()
     set_identity("your.email@example.com")
     _env_path: Path = Path(__file__).parent.parent / ".env"
@@ -222,4 +222,7 @@ async def test_flow():
 
 
 if __name__ == "__main__":
-    asyncio.run(test_flow())
+    import asyncio
+    from typing import Any, cast
+
+    asyncio.run(cast(Any, test_flow)())

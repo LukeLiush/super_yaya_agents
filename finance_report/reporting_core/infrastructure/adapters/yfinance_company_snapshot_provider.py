@@ -66,7 +66,7 @@ class YFinanceCompanySnapshotProvider(CompanySnapshotProvider):
             info = yf_ticker.info or {}
             name = info.get("longName") or info.get("shortName")
             if name:
-                return name
+                return str(name)
         except Exception:
             pass
         return symbol

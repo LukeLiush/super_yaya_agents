@@ -1,13 +1,14 @@
 import asyncio
 import json
 from pathlib import Path
+from typing import Any, cast
 
 import pandas as pd
 from agno.tools.yfinance import YFinanceTools
 from dotenv import load_dotenv
 from prefect import flow, get_run_logger, task
 from pydantic import BaseModel, Field
-from tabulate import tabulate
+from tabulate import tabulate  # type: ignore[import-untyped]
 
 
 class PriceWindow(BaseModel):
@@ -36,7 +37,7 @@ class HistoricalPriceReport(BaseModel):
         headers = ["Window", f"High ({self.currency})", f"Low ({self.currency})"]
 
         # Prepare the data rows
-        table_data = [[w.window_name, f"{w.high:,.2f}", f"{w.low:,.2f}"] for w in self.price_matrix]
+        table_data = [[w.window, f"{w.high:,.2f}", f"{w.low:,.2f}"] for w in self.price_matrix]
 
         # Generate the table in GitHub Flavored Markdown format
         markdown_table = tabulate(table_data, headers=headers, tablefmt="github")
@@ -138,7 +139,7 @@ async def fetch_historical_ranges_task(ticker: str) -> HistoricalPriceReport | N
 
         price_matrix = []
         for name, row in price_metrics.iterrows():
-            price_matrix.append(PriceWindow(window_name=name, high=row["High"], low=row["Low"]))
+            price_matrix.append(PriceWindow(window=str(name), high=float(row["High"]), low=float(row["Low"])))
 
         report = HistoricalPriceReport(ticker=ticker, currency="USD", price_matrix=price_matrix)
         logger.info("HistoricalPriceReport generated for %s", ticker)
@@ -150,7 +151,7 @@ async def fetch_historical_ranges_task(ticker: str) -> HistoricalPriceReport | N
 
 
 @flow
-async def test_flow():
+async def test_flow() -> None:
     logger = get_run_logger()
     _env_path: Path = Path(__file__).parent.parent / ".env"
     if _env_path.exists():
@@ -163,4 +164,4 @@ async def test_flow():
 
 
 if __name__ == "__main__":
-    asyncio.run(test_flow())
+    asyncio.run(cast(Any, test_flow)())

@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, cast
 
 from prefect import get_run_logger, task
 from prefect.cache_policies import DEFAULT
@@ -120,4 +120,4 @@ async def query_transformation_task(query: str = "what is the latest news on tes
     logger.info("Query transformation completed. Generated %d queries", len(output_queries))
     for i, sq in enumerate(output_queries, 1):
         logger.debug("  %d. [%s] (time_range: %s)", i, sq.query, sq.time_range)
-    return result.output
+    return cast(list[SearchQueries], result.output)

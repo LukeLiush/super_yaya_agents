@@ -2,7 +2,7 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal, cast
 
 from agno.agent import Agent
 from agno.models.base import Model
@@ -36,8 +36,9 @@ _BACKENDS: list[str] = [
     "auto",
 ]
 TimeRange = Literal["day", "week", "month", "year"]
+TimeLimit = Literal["d", "w", "m", "y"]
 
-_TIMELIMIT_MAP: dict[str, str] = {
+_TIMELIMIT_MAP: dict[str, TimeLimit] = {
     "day": "d",
     "week": "w",
     "month": "m",
@@ -49,7 +50,7 @@ class EmptyNewsResults(Exception):
     """Raised when the news search returns no items, to trigger a retry."""
 
 
-def _to_timelimit(time_range: TimeRange) -> str:
+def _to_timelimit(time_range: TimeRange) -> TimeLimit:
     try:
         return _TIMELIMIT_MAP[time_range]
     except KeyError as err:
@@ -57,7 +58,7 @@ def _to_timelimit(time_range: TimeRange) -> str:
 
 
 def _build_ddg(
-    timelimit: str,
+    timelimit: TimeLimit,
     backend: str,
 ) -> WebSearchTools:
     # timelimit/backend are fixed at construction time, so build per-call to vary them.
@@ -70,7 +71,7 @@ def _build_ddg(
     )
 
 
-def _do_search(query: str, max_results: int, timelimit: str):
+def _do_search(query: str, max_results: int, timelimit: TimeLimit):
     for backend in _BACKENDS:
         logger.info(
             "news search using backend=%r",
@@ -84,7 +85,7 @@ def _do_search(query: str, max_results: int, timelimit: str):
     raise EmptyNewsResults(query)
 
 
-def _search_news_with_retry(query: str, max_results: int, max_attempts: int, timelimit: str):
+def _search_news_with_retry(query: str, max_results: int, max_attempts: int, timelimit: TimeLimit) -> Any:
     retryer = Retrying(
         retry=retry_if_exception_type((DDGSException, EmptyNewsResults)),
         stop=stop_after_attempt(max_attempts),
@@ -168,7 +169,7 @@ def create_websearch_agent(
     )
 
 
-def main():
+def main() -> None:
     # agent_os.serve(app="finance_agent_team:app", reload=True,)
     web_query = """
         for TSLA stock, can you conduct web search to tell the all of the news within recent 3 months, 
@@ -183,8 +184,8 @@ def main():
     )
 
 
-def call_search_news():
-    result: str = search_news_with_ddg.entrypoint(
+def call_search_news() -> None:
+    result: str = cast(Any, search_news_with_ddg).entrypoint(
         "tesla stock news",
         max_results=100,
         max_attempts=10,

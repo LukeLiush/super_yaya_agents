@@ -110,11 +110,12 @@ def send_attractive_thread_subject(
     # --- 2. Send Initial Message and Get Thread ID ---
     response_json = slack_tools.send_message(channel=slack_channel, text=initial_message)
     response_data = json.loads(response_json)
-    if "ts" not in response_data:
+    ts = response_data.get("ts")
+    if ts is None:
         logger.error(f"Failed to start Slack thread: {response_json}")
         return None
 
-    return response_data["ts"]
+    return str(ts)
 
 
 @task
@@ -130,7 +131,7 @@ async def synthesize_slack_report_task(ticker: str, slack_tools: SlackTools, sla
     current_stock_price: str = yfinance_tools.get_current_stock_price(ticker)
     current_price: float = float(current_stock_price) if current_stock_price else 0.0
 
-    thread_ts: str = send_attractive_thread_subject(
+    thread_ts: str | None = send_attractive_thread_subject(
         ticker=ticker,
         company_info=company_name,
         current_price=current_price,
@@ -143,13 +144,15 @@ async def synthesize_slack_report_task(ticker: str, slack_tools: SlackTools, sla
     price_future = fetch_historical_ranges_task.submit(ticker=ticker)
 
     insider: InsiderTradingActivities = insider_future.result()
-    slack_tools.send_message_thread(channel=slack_channel, text=insider.slack_insider_activities, thread_ts=thread_ts)
+    slack_tools.send_message_thread(
+        channel=slack_channel, text=insider.slack_insider_activities, thread_ts=str(thread_ts)
+    )
 
     news: News = news_future.result()
-    slack_tools.send_message_thread(channel=slack_channel, text=news.slack_message(), thread_ts=thread_ts)
+    slack_tools.send_message_thread(channel=slack_channel, text=news.slack_message(), thread_ts=str(thread_ts))
 
     prices: HistoricalPriceReport = price_future.result()
-    slack_tools.send_message_thread(channel=slack_channel, text=prices.slack_message(), thread_ts=thread_ts)
+    slack_tools.send_message_thread(channel=slack_channel, text=prices.slack_message(), thread_ts=str(thread_ts))
 
     # # 1. Instantiate the single-purpose rendering agent
     # synthesis_agent = _build_synthesis_agent()

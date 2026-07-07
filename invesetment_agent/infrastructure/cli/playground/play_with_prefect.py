@@ -18,7 +18,7 @@ class ItemSelection(RunInput):
 
 
 @task
-def discover_items():
+def discover_items() -> list[str]:
     items: list[str] = ["users", "orders", "payments"]
     return items
 
@@ -68,8 +68,9 @@ async def fanout_flow():
 
 if __name__ == "__main__":
     import asyncio
+    from typing import Any, cast
 
-    asyncio.run(fanout_flow())
+    asyncio.run(cast(Any, fanout_flow)())
     # fanout_flow.serve()
     # fanout_flow.deploy(
     #     name="my_deploy_1",

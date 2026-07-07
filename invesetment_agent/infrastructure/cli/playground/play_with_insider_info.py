@@ -103,7 +103,7 @@ def create_finance_agent(model: Model, db: BaseDb) -> Agent:
     )
 
 
-def main():
+def main() -> None:
     # agent_os.serve(app="finance_agent_team:app", reload=True,)
     financial_query = """
         for TSLA stock,

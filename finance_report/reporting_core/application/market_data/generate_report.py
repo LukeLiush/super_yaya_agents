@@ -1,4 +1,5 @@
 import logging
+from typing import Any, cast
 
 from finance_report.reporting_core.application.market_data.provider import MarketDataProvider
 from finance_report.reporting_core.application.ports.report_repository import (
@@ -22,9 +23,9 @@ class GeneratePriceReportUseCase(UseCase[ReportRequested, PriceReport | None]):
         self._windows = windows
 
     async def run(self, report_requested: ReportRequested) -> PriceReport | None:
-        with self._uow as _uow:
-            report_request_repository: ReportRequestRepository = _uow.repository(ReportRequestRepository)
-            report_payload_repository: ReportPayloadRepository = _uow.repository(ReportPayloadRepository)
+        with cast(Any, self._uow) as _uow:
+            report_request_repository: ReportRequestRepository = _uow.repository(cast(Any, ReportRequestRepository))
+            report_payload_repository: ReportPayloadRepository = _uow.repository(cast(Any, ReportPayloadRepository))
 
             report_request: ReportRequest | None = report_request_repository.get_by_id(report_requested.report_id)
 

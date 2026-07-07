@@ -1,5 +1,6 @@
 import datetime as dt
 from datetime import datetime
+from typing import Any, cast
 
 from finance_report.reporting_core.application.insider_filling.provider import InsiderProvider
 from finance_report.reporting_core.application.ports.report_repository import ReportPayloadRepository
@@ -34,6 +35,6 @@ class GenerateInsiderReportUseCase(UseCase[ReportRequested, InsiderReport]):
             period_end=end_date,
             provenance=provenance,
         )
-        with self._uow as uow:
-            uow.repository(ReportPayloadRepository).save(insider_report)
+        with cast(Any, self._uow) as uow:
+            uow.repository(cast(Any, ReportPayloadRepository)).save(insider_report)
         return insider_report

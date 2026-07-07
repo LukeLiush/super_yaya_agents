@@ -2,7 +2,7 @@ import json
 import logging
 import sqlite3
 from collections.abc import Callable
-from typing import Any, ClassVar, TypeVar
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypeVar, cast
 
 from finance_report.reporting_core.application.ports.report_repository import ReportPayloadRepository
 from finance_report.reporting_core.domain.insider_report import InsiderReport
@@ -19,12 +19,14 @@ SCHEMA_UPGRADERS: dict[str, dict[int, Callable[[dict[str, Any]], dict[str, Any]]
     "insider": {},
 }
 
+ReportTypeStr = Literal["PriceReport", "NewsReport", "InsiderReport"]
+
 
 class SqliteReportPayloadRepository(ReportPayloadRepository):
     TYPE_MAP: ClassVar[dict[str, type[ReportPayload]]] = {
-        PriceReport.report_type: PriceReport,
-        NewsReport.report_type: NewsReport,
-        InsiderReport.report_type: InsiderReport,
+        PriceReport.report_type(): PriceReport,
+        NewsReport.report_type(): NewsReport,
+        InsiderReport.report_type(): InsiderReport,
     }
 
     def __init__(self, connection: sqlite3.Connection):
@@ -82,7 +84,7 @@ class SqliteReportPayloadRepository(ReportPayloadRepository):
         return self._row_to_payload(row, report_type)
 
     def _row_to_payload(self, row: sqlite3.Row, expected_cls: type[T] | None = None) -> T:
-        report_type = row["report_type"]
+        report_type = str(row["report_type"])
         cls = expected_cls or self.TYPE_MAP.get(report_type)
 
         if not cls:
@@ -90,9 +92,9 @@ class SqliteReportPayloadRepository(ReportPayloadRepository):
 
         # Recombine promoted columns + blob back into one dict for validation.
         data = {
-            "report_id": {"value": row["report_id"]},
+            "report_id": {"value": str(row["report_id"])},
             "generated_at": row["generated_at"],
             "provenance": json.loads(row["provenance"]) if row["provenance"] else None,
             **(json.loads(row["payload"]) if row["payload"] else {}),
         }
-        return cls.model_validate(data)
+        return cast(T, cls.model_validate(data))

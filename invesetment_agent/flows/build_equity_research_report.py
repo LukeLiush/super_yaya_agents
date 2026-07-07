@@ -3,7 +3,7 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal, cast
 
 from agno.tools.websearch import WebSearchTools
 from ddgs.exceptions import DDGSException
@@ -56,9 +56,15 @@ class EmptyNewsResults(Exception):
     """Raised when the news search returns no items, to trigger a retry."""
 
 
-def _to_timelimit(time_range: TimeRange) -> str:
+def _to_timelimit(time_range: TimeRange) -> Literal["d", "w", "m", "y"]:
+    _map: dict[str, Literal["d", "w", "m", "y"]] = {
+        "day": "d",
+        "week": "w",
+        "month": "m",
+        "year": "y",
+    }
     try:
-        return _TIMELIMIT_MAP[time_range]
+        return _map[time_range]
     except KeyError as err:
         raise ValueError(f"invalid time_range: {time_range!r} (use day/week/month/year)") from err
 
@@ -68,7 +74,7 @@ def _build_ddg(timelimit: str, backend: str) -> WebSearchTools:
     return WebSearchTools(
         enable_news=True,
         enable_search=False,
-        timelimit=timelimit,
+        timelimit=cast(Any, timelimit),
         region="us-en",
         backend=backend,
     )
@@ -86,11 +92,11 @@ def _do_search(query: str, max_results: int, timelimit: str, backend: str):
     if items:
         return items
 
-    raise (query)
+    raise EmptyNewsResults(query)
 
 
 def _search_news_with_retry(query: str, max_results: int, max_attempts: int, timelimit: str, backend: str):
-    logger = get_run_logger()
+    logger = cast(Any, get_run_logger())
     retryer = Retrying(
         retry=retry_if_exception_type((DDGSException, EmptyNewsResults)),
         stop=stop_after_attempt(max_attempts),
@@ -180,7 +186,7 @@ async def fetch_ddg_search_engine() -> list[str]:
         # "yandex",
         # "auto",
     ]
-    await create_table_artifact(
+    await cast(Any, create_table_artifact)(
         key="tool-io-fetch-ddgs-backends",
         table=[{"backend": backends}],
         description="Search backends",
@@ -200,7 +206,7 @@ async def run_backend_search(backend: str, query: str) -> list[dict]:
     output = [item.model_dump() for item in result.output]
 
     logger.info("backend=%s returned %d results", backend, len(output))
-    await create_table_artifact(
+    await cast(Any, create_table_artifact)(
         key=f"tool-io-{backend}",
         table=[{"backend": backend, "query": query, "results": len(output)}],
         description="Search tool inputs and result counts",
@@ -210,7 +216,7 @@ async def run_backend_search(backend: str, query: str) -> list[dict]:
 
 @flow(name="equity_research_report", log_prints=True)
 async def build_equity_research_report() -> dict[str, list[dict]]:
-    backends = await fetch_ddg_search_engine()
+    backends = await cast(Any, fetch_ddg_search_engine)()
 
     tasks = [run_backend_search(b, "latest news on AAPL stock") for b in backends]
     results = await asyncio.gather(*tasks)

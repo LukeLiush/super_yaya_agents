@@ -46,7 +46,7 @@ def create_websearch_agent(
     )
 
 
-def main():
+def main() -> None:
     # agent_os.serve(app="finance_agent_team:app", reload=True,)
     web_query = "Search DuckDuckGo for TSLA stock news from the last 3 months."
     model: Model = create_model()
@@ -56,7 +56,7 @@ def main():
     print(f"Result: {result.output}")
 
 
-async def call_search_news():
+async def call_search_news() -> None:
     ddg = duckduckgo_search_tool()
     results = await ddg.function("TSLA stock news in the last 3 months")
     print(results)

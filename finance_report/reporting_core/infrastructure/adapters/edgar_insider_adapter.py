@@ -137,7 +137,7 @@ def _to_date(v) -> dt.date | None:
     if isinstance(v, dt.date):
         return v
     if isinstance(v, pd.Timestamp):
-        return v.date()
+        return dt.date(v.year, v.month, v.day)
     try:
         return datetime.strptime(str(v), "%Y-%m-%d").date()
     except (ValueError, TypeError):
