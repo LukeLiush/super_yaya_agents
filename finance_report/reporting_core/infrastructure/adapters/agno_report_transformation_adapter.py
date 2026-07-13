@@ -24,14 +24,14 @@ FEW_SHOT: dict[str, str] = {
     ),
     InsiderReport.report_type(): (
         "Example output:\n"
-        "*Insider Transactions*\n"
+        "*Insider Transactions from 2026-03-31 to 2026-06-30*\n"
         "```\n"
         "Date        Insider          Type   Shares    Price     Value\n"
         "2026-06-28  J. Smith (CFO)   SELL   12,000    $392.00   $4.70M\n"
         "2026-06-20  A. Doe (Dir)     BUY     3,000    $400.00   $1.20M\n"
         "2026-06-15  R. Lee (CEO)     BUY     5,000    $388.00   $1.94M\n"
         "\n"
-        "Totals\n"
+        "**Totals from 2026-03-31 to 2026-06-30**\n"
         "  Bought:  8,000 shares   $3.14M\n"
         "  Sold:   12,000 shares   $4.70M\n"
         "  Net:    -4,000 shares  -$1.56M  (net selling)\n"
@@ -60,7 +60,19 @@ class AgnoReportSummarizer(ReportSummarizer):
         example: str = FEW_SHOT[report.report_type()]
         logger.info(f"here is my example: \n\n {example}")
         prompt = (
-            f"Summarize this report. Emphasize: {report.summary_focus()}.\n\n{example}\n{report.to_prompt_context()}"
+            "Summarize the report data provided below.\n\n"
+            f"Focus your summary on: {report.summary_focus()}.\n\n"
+            "Follow the formatting shown in this example. The example is for "
+            "format only — do NOT reuse any of its numbers, dates, or facts.\n"
+            "<example>\n"
+            f"{example}\n"
+            "</example>\n\n"
+            "Here is the actual report data to summarize:\n"
+            "<report_data>\n"
+            f"{report.to_prompt_context()}\n"
+            "</report_data>\n\n"
+            "Now write the summary using ONLY the data inside <report_data>, "
+            "matching the format of the example above."
         )
         result = self._agent.run(prompt)
         return str(result.content)

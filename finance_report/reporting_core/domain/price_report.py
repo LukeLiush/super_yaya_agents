@@ -115,18 +115,17 @@ class PriceReport(ReportPayload):
 
     def summary_focus(self) -> str:
         return (
-            "price trend phases over the period, the 52-week high/low range, "
-            "notable volume behavior, and the current status relative to that range"
+            "the price range for each period and how it changes across timeframes"
         )
 
     @classmethod
     def create(
-        cls,
-        report_id: ReportId,
-        price_bars: tuple[DailyPriceBar, ...],
-        latest_close,
-        windows: list[Window],
-        provenance: Provenance | None = None,
+            cls,
+            report_id: ReportId,
+            price_bars: tuple[DailyPriceBar, ...],
+            latest_close,
+            windows: list[Window],
+            provenance: Provenance | None = None,
     ):
         # 1. Implementation of high_low_entries creation
         high_low_entries = []

@@ -40,7 +40,7 @@ async def save_secrets():
         secret_name = field_info.alias or field_name
         secret_value = getattr(settings, field_name)
 
-        PrefectSecretAdapter().save(
+        await PrefectSecretAdapter().save(
             key=secret_name,
             value=secret_value,
         )

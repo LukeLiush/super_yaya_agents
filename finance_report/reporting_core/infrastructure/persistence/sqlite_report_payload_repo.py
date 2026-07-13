@@ -2,12 +2,9 @@ import json
 import logging
 import sqlite3
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypeVar, cast
+from typing import Any, Literal, TypeVar, cast
 
 from finance_report.reporting_core.application.ports.report_repository import ReportPayloadRepository
-from finance_report.reporting_core.domain.insider_report import InsiderReport
-from finance_report.reporting_core.domain.news_report import NewsReport
-from finance_report.reporting_core.domain.price_report import PriceReport
 from finance_report.reporting_core.domain.shared_values import ReportPayload
 
 logger = logging.getLogger(__name__)
@@ -23,11 +20,6 @@ ReportTypeStr = Literal["PriceReport", "NewsReport", "InsiderReport"]
 
 
 class SqliteReportPayloadRepository(ReportPayloadRepository):
-    TYPE_MAP: ClassVar[dict[str, type[ReportPayload]]] = {
-        PriceReport.report_type(): PriceReport,
-        NewsReport.report_type(): NewsReport,
-        InsiderReport.report_type(): InsiderReport,
-    }
 
     def __init__(self, connection: sqlite3.Connection):
         self._connection: sqlite3.Connection = connection
@@ -47,7 +39,7 @@ class SqliteReportPayloadRepository(ReportPayloadRepository):
             "CREATE INDEX IF NOT EXISTS idx_reports_lookup ON reports (report_type, generated_at DESC)"
         )
 
-    def save(self, payload: ReportPayload) -> None:
+    def add(self, payload: ReportPayload) -> None:
         # Use mode="json" to get serialized values (datetimes to strings, etc.)
         full: dict = payload.model_dump(mode="json")
 
@@ -83,11 +75,11 @@ class SqliteReportPayloadRepository(ReportPayloadRepository):
 
         return self._row_to_payload(row, report_type)
 
-    def _row_to_payload(self, row: sqlite3.Row, expected_cls: type[T] | None = None) -> T:
+    @staticmethod
+    def _row_to_payload(row: sqlite3.Row, expected_cls: type[T] | None = None) -> T:
         report_type = str(row["report_type"])
-        cls = expected_cls or self.TYPE_MAP.get(report_type)
 
-        if not cls:
+        if not expected_cls:
             raise ValueError(f"Unknown report type: {report_type}")
 
         # Recombine promoted columns + blob back into one dict for validation.
@@ -97,4 +89,4 @@ class SqliteReportPayloadRepository(ReportPayloadRepository):
             "provenance": json.loads(row["provenance"]) if row["provenance"] else None,
             **(json.loads(row["payload"]) if row["payload"] else {}),
         }
-        return cast(T, cls.model_validate(data))
+        return cast(T, expected_cls.model_validate(data))

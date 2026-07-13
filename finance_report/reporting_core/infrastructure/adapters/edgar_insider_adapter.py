@@ -37,7 +37,8 @@ class EdgarInsiderAdapter(InsiderProvider):
             before_sleep=before_sleep_log(logger, logging.INFO),
         )
 
-    def _get_form4_dataframe(self, company: Company, start: str, end: str) -> pd.DataFrame:
+    @staticmethod
+    def _get_form4_dataframe(company: Company, start: str, end: str) -> pd.DataFrame:
         try:
             filings: EntityFilings = company.get_filings(form="4", filing_date=(start, end))
         except (ConnectionError, TimeoutError, OSError) as e:
@@ -70,7 +71,7 @@ class EdgarInsiderAdapter(InsiderProvider):
         end = end_date.strftime("%Y-%m-%d")
 
         df: pd.DataFrame = self.retrying(self._get_form4_dataframe, company, start, end)
-
+        logger.info("Fetched %d Form 4 filings for %s between %s and %s", len(df), company.tickers, start, end)
         provenance: Provenance = Provenance(
             source=edgar.__name__,
             query=f'Company("{ticker.symbol}").get_filings(form="4", filing_date=("{start}", "{end}"))',

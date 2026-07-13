@@ -13,7 +13,7 @@ class SecretProvider(Protocol):
 
 
 class SecretAdapter(Protocol):
-    def save(self, key: str, value: str) -> None: ...
+    async def save(self, key: str, value: str) -> None: ...
 
 
 class EnvSecretProvider(SecretProvider):
@@ -107,9 +107,9 @@ class PrefectSecretProvider(SecretProvider):
 
 
 class PrefectSecretAdapter(SecretAdapter):
-    def save(self, key: str, value: str) -> None:
+    async def save(self, key: str, value: str) -> None:
         normalized_block_name: str = _normalize_block_name(key)
-        Secret(value=SecretStr(value)).save(name=normalized_block_name, overwrite=True)
+        await Secret(value=SecretStr(value)).save(name=normalized_block_name, overwrite=True)
 
 
 def _normalize_block_name(name: str) -> str:

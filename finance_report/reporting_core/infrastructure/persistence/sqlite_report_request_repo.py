@@ -24,7 +24,7 @@ class SqliteReportRequestRepository(ReportRequestRepository):
             )
         """)
 
-    def save(self, request: ReportRequest) -> None:
+    def add(self, request: ReportRequest) -> None:
         data = request.model_dump(exclude={"id", "ticker", "requested_by", "status", "requested_at"})
         self._connection.execute(
             """

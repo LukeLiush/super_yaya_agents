@@ -24,14 +24,20 @@ class YFinanceSplitAdapter(SplitProvider):
     @staticmethod
     def _fetch_splits_with_provenance(symbol: str) -> tuple[pd.Series, Provenance]:
         """Internal method to fetch splits from yfinance."""
-        ticker = yf.Ticker(symbol)
-        splits: pd.Series = ticker.splits
         provenance = Provenance(
             source=yf.__name__,
             query=f'yf.Ticker("{symbol}").splits',
             queried_at=datetime.now(UTC),
             source_version=yf.__version__,
         )
+
+        ticker = yf.Ticker(symbol)
+        try:
+            splits: pd.Series = ticker.splits
+        except TypeError:
+            logger.exception(f"Failed to fetch splits for {symbol}. Returning empty Series.")
+            # Handle the failure gracefully (e.g., return an empty Series)
+            splits = pd.Series(dtype='float64')
         return splits, provenance
 
     def fetch_latest_splits(self, ticker: Ticker) -> SplitEvent | None:

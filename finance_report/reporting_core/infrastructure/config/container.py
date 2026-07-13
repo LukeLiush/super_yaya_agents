@@ -43,12 +43,10 @@ from finance_report.reporting_core.infrastructure.config.settings import Setting
 from finance_report.reporting_core.infrastructure.flows.inngest_finance_report_service import (
     InngestFinanceReportService,
 )
-from finance_report.reporting_core.infrastructure.persistence.sqlite_report_payload_repo import (
-    SqliteReportPayloadRepository,
-)
-from finance_report.reporting_core.infrastructure.persistence.sqlite_report_request_repo import (
-    SqliteReportRequestRepository,
-)
+from finance_report.reporting_core.infrastructure.persistence.sqlite_report_payload_repo import \
+    SqliteReportPayloadRepository
+from finance_report.reporting_core.infrastructure.persistence.sqlite_report_request_repo import \
+    SqliteReportRequestRepository
 from finance_report.reporting_core.infrastructure.persistence.sqlite_uow import SqliteUnitOfWork
 from finance_report.reporting_core.infrastructure.web.asgi_adapter import ASGIAdapter
 from finance_report.reporting_core.infrastructure.web.inngest_asgi import InngestASGI
@@ -74,7 +72,7 @@ def _build(settings: Settings) -> Container:
     the_container: Container = Container()
     # 1. Bind Repository as a Singleton (shared DB connection)
     # ponytail: db path could be injected from env
-    the_container[cast(Any, UnitOfWork)] = Singleton(
+    the_container[cast(Any, UnitOfWork)] = \
         lambda: SqliteUnitOfWork(
             db_path="finance_reports.db",
             repository_factories={
@@ -82,7 +80,7 @@ def _build(settings: Settings) -> Container:
                 ReportPayloadRepository: SqliteReportPayloadRepository,
             },
         )
-    )
+
 
     # 2. Bind Adapters
     # ponytail: YFinanceAdapter has a complex constructor (Retrying), so we bind it explicitly
@@ -117,26 +115,27 @@ def _build(settings: Settings) -> Container:
         "Keep under ~2500 characters."
     )
     the_container[cast(Any, ReportSummarizer)] = Singleton(lambda:
-                                                        AgnoReportSummarizer.from_model(
-                                                            DashScope(id="qwen-plus",
-                                                                      api_key=settings.dashscope_api_key,
-                                                                      base_url=settings.dashscope_base_url),
-                                                            instructions=SLACK_FORMAT,
-                                                        )
-                                                        )
+                                                           AgnoReportSummarizer.from_model(
+                                                               DashScope(id="qwen-plus",
+                                                                         api_key=settings.dashscope_api_key,
+                                                                         base_url=settings.dashscope_base_url),
+                                                               instructions=SLACK_FORMAT,
+                                                           )
+                                                           )
     the_container[cast(Any, CompanySnapshotProvider)] = Singleton(
         lambda: YFinanceCompanySnapshotProvider(ticker_factory=lambda s: yf.Ticker(s))
     )
     the_container[cast(Any, ReportNotifier)] = Singleton(lambda:
-                                                      SlackReportNotifier(
-                                                          SlackTools(settings.slack_bot_token),
-                                                          settings.slack_channel_id,
-                                                      )
-                                                      )
+                                                         SlackReportNotifier(
+                                                             SlackTools(settings.slack_bot_token),
+                                                             settings.slack_channel_id,
+                                                         )
+                                                         )
 
     # Use cases are resolved automatically by type hints if dependencies are bound
     the_container[CreateReportRequestUseCase] = Singleton(
-        lambda: CreateReportRequestUseCase(the_container[cast(Any, SplitProvider)], the_container[cast(Any, UnitOfWork)])
+        lambda: CreateReportRequestUseCase(the_container[cast(Any, SplitProvider)],
+                                           the_container[cast(Any, UnitOfWork)])
     )
     the_container[GeneratePriceReportUseCase] = Singleton(
         lambda: GeneratePriceReportUseCase(
@@ -151,7 +150,7 @@ def _build(settings: Settings) -> Container:
     )
     the_container[GenerateInsiderReportUseCase] = Singleton(
         lambda: GenerateInsiderReportUseCase(
-            the_container[cast(Any, InsiderProvider)], the_container[cast(Any, UnitOfWork)], recent_days=90
+            the_container[cast(Any, InsiderProvider)], the_container[cast(Any, UnitOfWork)]
         )
     )
     the_container[ReportRegistry] = Singleton(lambda: ReportRegistry(the_container))

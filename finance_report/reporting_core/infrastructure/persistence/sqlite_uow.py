@@ -28,6 +28,7 @@ class SqliteUnitOfWork(UnitOfWork):
 
     def __enter__(self):
         self._connection = sqlite3.connect(self._db_path)
+        self._connection.execute("PRAGMA journal_mode=WAL;")  # Enable WAL
         self._connection.row_factory = sqlite3.Row
         return self
 

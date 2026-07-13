@@ -38,5 +38,5 @@ class CreateReportRequestUseCase(UseCase[CreateRequestInput, ReportRequest]):
         with self._uow as uow:
             report_request: ReportRequest = ReportRequest.create(ticker, requested_by, split_event)
             report_request_repository: ReportRequestRepository = uow.repository(ReportRequestRepository)
-            report_request_repository.save(report_request)
+            report_request_repository.add(report_request)
         return report_request

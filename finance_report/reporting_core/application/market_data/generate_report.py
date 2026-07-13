@@ -28,23 +28,21 @@ class GeneratePriceReportUseCase(UseCase[ReportRequested, PriceReport | None]):
             report_payload_repository: ReportPayloadRepository = _uow.repository(cast(Any, ReportPayloadRepository))
 
             report_request: ReportRequest | None = report_request_repository.get_by_id(report_requested.report_id)
-
             if report_request is None:
-                raise ValueError(f"Report request {report_requested.report_id} not found")
+                logger.error("Report request not found: %s", report_requested.report_id)
+                return None
             try:
-                report_request.mark_as_in_progress()
-                price_bars, provenance = self._market_data_provider.fetch_prices(report_request.ticker)
+                price_bars, provenance = self._market_data_provider.fetch_prices(report_requested.ticker)
                 if price_bars:
                     price_report: PriceReport = PriceReport.create(
-                        report_id=report_request.id,
+                        report_id=report_requested.report_id,
                         price_bars=price_bars,
                         latest_close=price_bars[-1].close,
                         windows=self._windows,
                         provenance=provenance,
                     )
 
-                    report_payload_repository.save(price_report)
-                    report_request.mark_as_complete()
+                    report_payload_repository.add(price_report)
                     return price_report
                 else:
                     report_request.mark_as_failed(
@@ -56,9 +54,10 @@ class GeneratePriceReportUseCase(UseCase[ReportRequested, PriceReport | None]):
                             )
                         )
                     )
+                    report_request_repository.add(report_request)
             except Exception as exc:
                 failure_context = FailureContext.from_exception(exc)
                 report_request.mark_as_failed(failure_context)
                 logger.exception("Failed to generate price report for %s", report_request.ticker)
-
+                report_request_repository.add(report_request)
             return None
