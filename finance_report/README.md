@@ -45,6 +45,64 @@ export INNGEST_SIGNING_KEY=your_key_here
 
 ---
 
+## Prefect Setup and Orchestration
+
+This project supports **Prefect** as an alternative orchestrator to Inngest.
+
+### 1. Configuration (Switching to Prefect)
+
+The project uses a settings-based approach to determine which orchestrator to use. To point the orchestrator to Prefect:
+- In your `.env` file, set:
+  ```env
+  ORCHESTRATOR=prefect
+  ```
+- Alternatively, you can change the default in `finance_report/reporting_core/infrastructure/config/settings.py` (though `.env` is preferred).
+- When `ORCHESTRATOR=prefect`, the system uses `PrefectASGI` to handle report triggers, which queues runs on your Prefect deployment.
+
+### 2. Local Testing with Prefect
+
+#### A. Start the Prefect Server
+Before running the local worker or triggering reports, you need a running Prefect instance. In a new terminal, run:
+```bash
+uv run prefect server start
+```
+This will start the Prefect dashboard at `http://localhost:4200`.
+
+#### B. Local Worker and Secret Sync
+Once the server is up, run the local serve script in another terminal:
+```bash
+uv run python finance_report/reporting_core/infrastructure/flows/local_prefect_serve.py
+```
+This script will:
+1.  Automatically sync your local secrets (from `.env`) to Prefect Blocks.
+2.  Start a local worker that listens for flow runs.
+
+#### C. Triggering Reports
+With both the server and the local worker running, you can trigger reports via the CLI or API, and they will be executed by the local worker.
+
+### 3. Remote Deployment (Docker + Prefect Cloud/Server)
+
+To deploy the flow to a remote Prefect server (e.g., Prefect Cloud or a self-hosted instance):
+
+1.  **Configure API URL**: Ensure `PREFECT_API_URL` is set to your remote server address.
+2.  **Deploy**: Use the provided deployment script:
+    ```bash
+    uv run python finance_report/reporting_core/infrastructure/flows/remote_prefect_deploy.py
+    ```
+3.  **What this script does**:
+    - It builds a Docker image using the `Dockerfile` located at `finance_report/reporting_core/infrastructure/flows/Dockerfile`.
+    - It pushes the image to Docker Hub (defaulting to `ethankulakula/super-yaya-slack-bot`).
+    - It registers the deployment on the Prefect server using the `my-docker-pool` work pool.
+
+### Triggering via API
+When Prefect is enabled, you can still use the standard trigger endpoint. The request will be automatically routed to Prefect:
+```bash
+curl -X POST http://127.0.0.1:8000/report/trigger -H "Content-Type: application/json" -d '{"ticker": "TSLA", "report_types": ["price"]}'
+```
+The response will contain a Prefect flow run URL for tracking.
+
+---
+
 ## Yaya CLI Usage
 
 The `yaya` CLI is the primary way to interact with the finance report services from the command line.
@@ -136,6 +194,9 @@ uv run pytest
 *   **CLI Entry Point:** `finance_report/reporting_core/infrastructure/cli/yaya.py`
 *   **Web Entry Point:** `finance_report/reporting_core/infrastructure/web/api_routes.py`
 *   **Inngest Functions:** `finance_report/reporting_core/infrastructure/web/inngest_fns.py`
+*   **Prefect ASGI Adapter:** `finance_report/reporting_core/infrastructure/web/prefect_asgi.py`
+*   **Prefect Local Serve:** `finance_report/reporting_core/infrastructure/flows/local_prefect_serve.py`
+*   **Prefect Remote Deploy:** `finance_report/reporting_core/infrastructure/flows/remote_prefect_deploy.py`
 *   **DI Container:** `finance_report/reporting_core/infrastructure/config/container.py`
 *   **Domain Models:** `finance_report/reporting_core/domain/`
 *   **Persistence:** `finance_report/reporting_core/infrastructure/persistence/`
