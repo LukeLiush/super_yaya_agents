@@ -25,3 +25,32 @@ class SlackReportNotifier(ReportNotifier):
 
     async def post_report(self, thread: NotificationThread, slack_message: str) -> None:
         self._slack_tools.send_message_thread(channel=self._slack_channel, text=slack_message, thread_ts=thread.ref)
+
+
+async def main():
+    # 1. Properly instantiate the notifier
+    notifier = SlackReportNotifier(
+        slack_tools=SlackTools(token=os.environ["SLACK_BOT_TOKEN"]),
+        slack_channel="#super-yaya"
+    )
+
+    # 2. Await the async method call
+    thread = await notifier.open_thread("test notification")
+
+    if thread:
+        print(f"Successfully opened thread with ref: {thread.ref}")
+        # Optionally test posting a report
+        await notifier.post_report(thread, "This is a test report message")
+    else:
+        print("Failed to open thread")
+
+
+if __name__ == "__main__":
+    print("test")
+    from dotenv import load_dotenv
+
+    load_dotenv()
+    import os
+    import asyncio
+
+    asyncio.run(main())

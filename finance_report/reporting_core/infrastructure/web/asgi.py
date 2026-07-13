@@ -4,7 +4,7 @@ from typing import Any, cast
 from fastapi import FastAPI
 
 from finance_report.finance_sdk.schemas import ReportTriggerRequest, ReportTriggerResponse
-from finance_report.reporting_core.infrastructure.config.container import container
+from finance_report.reporting_core.infrastructure.config.container import get_container
 from finance_report.reporting_core.infrastructure.web.asgi_adapter import ASGIAdapter
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -20,6 +20,7 @@ async def health():
 
 @_app.post("/report/trigger", response_model=ReportTriggerResponse, status_code=202)
 async def trigger_report(request: ReportTriggerRequest):
-    asgi: ASGIAdapter = container[cast(Any, ASGIAdapter)]
+    _container = await get_container()
+    asgi: ASGIAdapter = _container[cast(Any, ASGIAdapter)]
     asgi.attach_to_app(_app)
     return await asgi.trigger(request)

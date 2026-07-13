@@ -6,7 +6,7 @@ requires-python = ">=3.11"
 dependencies = []
 
 [tool.uv.workspace]
-members = ["finance_report", "invesetment_agent"]
+members = ["finance_report", "invesetment_agent", "shevchenko"]
 
 [dependency-groups]
 dev = [

@@ -1,0 +1,17 @@
+[project]
+name = "shevchenko"
+version = "0.1.0"
+description = "framework for xxx"
+requires-python = ">=3.11"
+dependencies = [
+    "dulwich>=1.2.10",
+    "pydantic>=2.12.5",
+    "python-on-whales>=0.81.0",
+]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["shevchenko*"]

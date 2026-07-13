@@ -48,7 +48,7 @@ class _YFNewsRaw(BaseModel):
 
     @staticmethod
     def from_raw(raw: dict) -> "_YFNewsRaw":
-        parsed = _YFNewsRaw.model_validate(raw)
+        parsed: _YFNewsRaw = _YFNewsRaw.model_validate(raw)
         return parsed
 
     def to_news_item(self) -> NewsItem | None:

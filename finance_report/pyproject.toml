@@ -10,6 +10,7 @@ dependencies = [
     "lagom>=2.7.7",
     "pandas",
     "prefect>=3.7.2",
+    "prefect-docker>=0.6.0",
     "pydantic>=2.0",
     "pydantic-settings",
     "python-dotenv>=1.2.1",
@@ -20,4 +21,13 @@ dependencies = [
     "edgartools[ai]>=5.35.1",
     "httpx",
     "rich",
+    "slack-sdk",
+    "openai>=2.14.0",
 ]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["reporting_core*"]

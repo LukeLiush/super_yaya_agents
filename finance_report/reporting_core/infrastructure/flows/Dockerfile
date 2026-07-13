@@ -1,27 +1,18 @@
-# Use Python 3.11 slim image as base
 FROM python:3.11-slim
 
-# 1. Define the variable once
 ENV APP_HOME=/app
-ENV PYTHONPATH=$APP_HOME
+ENV PYTHONPATH=/app
+WORKDIR /app
 
-# 2. Use that variable to set the WORKDIR
-WORKDIR $APP_HOME
-
-# Install uv
 RUN pip install --no-cache-dir uv
 
-# Copy dependency files from the project root
-# Note: When building, the context should be the project root
+# workspace metadata + lock
 COPY pyproject.toml uv.lock ./
 
-# Install dependencies using uv
-# --no-install-project avoids installing the project itself in this step
-RUN uv sync --frozen --no-install-project
-
-# Copy the finance_report directory
+# copy the member code FIRST so uv can see the workspace member
 COPY finance_report/ ./finance_report/
 
+# now sync: installs deps (prefect, etc.); --no-install-project skips building your package
+RUN uv sync --frozen --no-dev --package finance-report --no-install-project
 
-# Install the project itself
-RUN uv sync --frozen
+ENV PATH="/app/.venv/bin:$PATH"

@@ -1,4 +1,5 @@
 from typing import cast
+
 from agno.tools.yfinance import YFinanceTools
 from prefect import get_run_logger, task
 from pydantic import BaseModel, Field

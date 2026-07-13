@@ -211,7 +211,7 @@ async def test_flow() -> None:
     result: InsiderTradingActivities = await future.result()
 
     logger.info(
-        "Workflow pipeline completed. Final Slack text generation payload len: %d",
+        "Job pipeline completed. Final Slack text generation payload len: %d",
         len(result.slack_insider_activities),
     )
     print("\n--- FINAL OUTPUT OBJECT RESULT ---")

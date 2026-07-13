@@ -5,6 +5,7 @@ from decimal import Decimal
 from typing import Any, cast
 from zoneinfo import ZoneInfo
 
+from lagom.container import Container
 from prefect import flow, task
 
 from finance_report.finance_sdk.schemas import ReportTriggerRequest, ReportType
@@ -24,18 +25,18 @@ from finance_report.reporting_core.domain.shared_values import ReportPayload, Ti
 from finance_report.reporting_core.infrastructure.config.report_usecase_registry import ReportHandler, ReportRegistry
 from finance_report.reporting_core.infrastructure.flows.inngest_finance_report_service import ReportRunResult
 from finance_report.reporting_core.infrastructure.flows.prefect_utils import run_name_from
+from finance_report.reporting_core.infrastructure.config.container import get_container
 
 logger = logging.getLogger(__name__)
 
 
 @task(name="submit_report_request", retries=3)
 async def _submit_report_request(
-    ticker: Ticker,
-    requested_by: str,
+        ticker: Ticker,
+        requested_by: str,
 ) -> ReportRequested:
     logger.info("Report request for ticker=%s", ticker.symbol)
-    from finance_report.reporting_core.infrastructure.config.container import container
-
+    container: Container = await get_container()
     create_request_use_case: CreateReportRequestUseCase = container[CreateReportRequestUseCase]
     report_request: ReportRequest = await create_request_use_case.run(
         CreateRequestInput(ticker=Ticker(symbol=ticker.symbol), requested_by=requested_by)
@@ -45,12 +46,11 @@ async def _submit_report_request(
 
 @task(name="fetch_snapshot", retries=3)
 async def _fetch_snapshot(
-    ticker: Ticker,
+        ticker: Ticker,
 ) -> CompanySnapshot:
     from typing import Any
 
-    from finance_report.reporting_core.infrastructure.config.container import container
-
+    container: Container = await get_container()
     company_snapshot_provider: CompanySnapshotProvider = container[cast(Any, CompanySnapshotProvider)]
     snapshot: CompanySnapshot = await company_snapshot_provider.fetch(ticker)
     return snapshot
@@ -58,11 +58,10 @@ async def _fetch_snapshot(
 
 @task(name="open_slack_thread", retries=3)
 async def _open_slack_thread(
-    subject: str,
+        subject: str,
 ) -> NotificationThread:
     from typing import Any
-
-    from finance_report.reporting_core.infrastructure.config.container import container
+    container: Container = await get_container()
 
     report_notifier: ReportNotifier = container[cast(Any, ReportNotifier)]
     res = await report_notifier.open_thread(subject)
@@ -73,12 +72,12 @@ async def _open_slack_thread(
 
 @task(name="post_slack_message", retries=3)
 async def _post_slack_message(
-    thread: NotificationThread,
-    report: str,
+        thread: NotificationThread,
+        report: str,
 ) -> None:
     from typing import Any
 
-    from finance_report.reporting_core.infrastructure.config.container import container
+    container: Container = await get_container()
 
     report_notifier: ReportNotifier = container[cast(Any, ReportNotifier)]
     await report_notifier.post_report(thread, report)
@@ -91,13 +90,13 @@ async def _post_slack_message(
     retries=3,
 )
 async def _run_report_pipeline(
-    report_requested: ReportRequested,
-    report_type: ReportType,
-    thread: NotificationThread,
+        report_requested: ReportRequested,
+        report_type: ReportType,
+        thread: NotificationThread,
 ) -> str:
     from typing import Any
 
-    from finance_report.reporting_core.infrastructure.config.container import container
+    container: Container = await get_container()
 
     report_registry: ReportRegistry = container[ReportRegistry]
     summarizer: ReportSummarizer = container[cast(Any, ReportSummarizer)]

@@ -1,3 +1,5 @@
+from typing import cast
+
 import httpx
 
 from finance_report.finance_sdk.contract import FinanceReportService
@@ -30,4 +32,4 @@ class HttpFinanceReportClient(FinanceReportService):
             body = resp.json()
 
         # The endpoint returns a serialized ReportTriggerResponse.
-        return ReportTriggerResponse.model_validate(body)
+        return cast(ReportTriggerResponse, ReportTriggerResponse.model_validate(body))

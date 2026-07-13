@@ -14,7 +14,7 @@ from lagom import Container
 from finance_report.reporting_core.domain.shared_values import Ticker
 from finance_report.reporting_core.infrastructure.adapters.edgar_insider_adapter import EdgarInsiderAdapter
 
-container = Container()
+_container = Container()
 _is_production = os.getenv("INNGEST_IS_PRODUCTION", "false").lower() == "true"
 _inngest_client = inngest.Inngest(
     app_id="finance-report-app", is_production=_is_production, serializer=PydanticSerializer()

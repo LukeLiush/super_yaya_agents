@@ -1,6 +1,10 @@
+import asyncio
 import os
 
 from prefect.docker import DockerImage
+
+from finance_report.reporting_core.infrastructure.config.settings import get_settings, Settings
+from finance_report.reporting_core.infrastructure.flows.local_prefect_serve import save_secrets
 
 os.environ["DOCKER_DEFAULT_PLATFORM"] = "linux/amd64"  # image for linux/amd64
 from prefect.settings import (
@@ -9,10 +13,11 @@ from prefect.settings import (
     temporary_settings,
 )
 
-from finance_report.reporting_core.infrastructure.config.settings import settings
 from finance_report.reporting_core.infrastructure.flows.prefect_finance_report_service import (
     finance_report_flow,
 )
+
+settings: Settings = asyncio.run(get_settings(use_secret_provider=False))
 
 with temporary_settings(
     {
@@ -20,6 +25,7 @@ with temporary_settings(
         PREFECT_API_TLS_INSECURE_SKIP_VERIFY: True,
     }
 ):
+    asyncio.run(save_secrets())
     finance_report_flow.deploy(
         name=settings.prefect_deployment_name,
         work_pool_name="my-docker-pool",
